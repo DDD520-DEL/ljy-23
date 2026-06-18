@@ -70,10 +70,15 @@ const StatsCard = ({ title, value, icon, color, subtitle }: StatsCardProps) => {
   const classes = colorClasses[color];
 
   const formatDisplayValue = () => {
-    if (typeof value === 'string') return value;
-    if (value >= 100) {
+    const originalDecimalPlaces = typeof value === 'string' && value.includes('.')
+      ? value.split('.')[1].length
+      : 0;
+    
+    if (numericValue >= 100 && originalDecimalPlaces === 0) {
       return displayValue.toFixed(0);
-    } else if (value >= 10) {
+    } else if (originalDecimalPlaces > 0) {
+      return displayValue.toFixed(originalDecimalPlaces);
+    } else if (numericValue >= 10) {
       return displayValue.toFixed(1);
     } else {
       return displayValue.toFixed(1);
