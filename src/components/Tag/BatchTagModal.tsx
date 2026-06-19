@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { X, Check, Tag as TagIcon, Plus } from 'lucide-react';
-import { useStore, useUserTags } from '../../store/useStore';
+import { useStore, useUserTags, useUserRecords } from '../../store/useStore';
 
 
 interface BatchTagModalProps {
@@ -11,10 +11,10 @@ interface BatchTagModalProps {
 
 const BatchTagModal = ({ isOpen, onClose, selectedRecordIds }: BatchTagModalProps) => {
   const tags = useUserTags();
+  const userRecords = useUserRecords();
   const batchAddTagsToRecords = useStore((state) => state.batchAddTagsToRecords);
   const batchRemoveTagsFromRecords = useStore((state) => state.batchRemoveTagsFromRecords);
   const addTag = useStore((state) => state.addTag);
-  const records = useStore((state) => state.records);
   
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [mode, setMode] = useState<'add' | 'remove'>('add');
@@ -29,7 +29,17 @@ const BatchTagModal = ({ isOpen, onClose, selectedRecordIds }: BatchTagModalProp
     '#3b82f6', '#6366f1', '#8b5cf6', '#ec4899',
   ];
 
-  const selectedRecords = records.filter(r => selectedRecordIds.includes(r.id));
+  const tagRecordCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    userRecords.forEach((record) => {
+      record.tagIds?.forEach((tagId) => {
+        map.set(tagId, (map.get(tagId) || 0) + 1);
+      });
+    });
+    return map;
+  }, [userRecords]);
+
+  const selectedRecords = userRecords.filter(r => selectedRecordIds.includes(r.id));
   
   const commonTagIds = selectedRecords.length > 0
     ? tags.filter(t => selectedRecords.every(r => r.tagIds?.includes(t.id))).map(t => t.id)
@@ -263,7 +273,7 @@ const BatchTagModal = ({ isOpen, onClose, selectedRecordIds }: BatchTagModalProp
                       {tag.name}
                     </span>
                     <span className="text-xs text-amber-500">
-                      {records.filter(r => r.tagIds?.includes(tag.id)).length} 条
+                      {tagRecordCountMap.get(tag.id) || 0} 条
                     </span>
                   </button>
                 );

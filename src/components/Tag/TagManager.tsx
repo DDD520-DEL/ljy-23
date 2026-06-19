@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Edit2, Trash2, X, Check, Palette, Tag as TagIcon } from 'lucide-react';
-import { useStore, useUserTags } from '../../store/useStore';
+import { useStore, useUserTags, useUserRecords } from '../../store/useStore';
 import type { Tag } from '../../types';
 
 interface TagManagerProps {
@@ -25,9 +25,20 @@ const PRESET_COLORS = [
 
 const TagManager = ({ isOpen, onClose }: TagManagerProps) => {
   const tags = useUserTags();
+  const userRecords = useUserRecords();
   const addTag = useStore((state) => state.addTag);
   const updateTag = useStore((state) => state.updateTag);
   const deleteTag = useStore((state) => state.deleteTag);
+
+  const tagRecordCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    userRecords.forEach((record) => {
+      record.tagIds?.forEach((tagId) => {
+        map.set(tagId, (map.get(tagId) || 0) + 1);
+      });
+    });
+    return map;
+  }, [userRecords]);
   
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -242,9 +253,7 @@ const TagManager = ({ isOpen, onClose }: TagManagerProps) => {
                       {tag.name}
                     </span>
                     <span className="text-xs text-amber-500">
-                      {tags.reduce((acc, t) => 
-                        acc + (useStore.getState().records.filter(r => r.tagIds?.includes(t.id)).length), 0
-                      )} 条记录
+                      {tagRecordCountMap.get(tag.id) || 0} 条记录
                     </span>
                     <button
                       onClick={() => handleEditTag(tag)}
