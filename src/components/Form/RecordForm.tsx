@@ -85,6 +85,22 @@ const RecordForm = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  useEffect(() => {
+    if (!selectedListItemId) return;
+    const item = shoppingList.find(i => i.id === selectedListItemId);
+    if (!item) {
+      setSelectedListItemId(null);
+      setPendingShoppingItemId(null);
+      return;
+    }
+    const nameMatches = formData.productName.trim() === item.productName.trim();
+    const categoryMatches = formData.category === item.category;
+    if (!nameMatches || !categoryMatches) {
+      setSelectedListItemId(null);
+      setPendingShoppingItemId(null);
+    }
+  }, [formData.productName, formData.category, selectedListItemId, shoppingList]);
+
   const resetForm = () => {
     const now = new Date();
     const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -139,7 +155,14 @@ const RecordForm = () => {
     });
 
     if (pendingShoppingItemId) {
-      completeShoppingListItem(pendingShoppingItemId);
+      const pendingItem = shoppingList.find(item => item.id === pendingShoppingItemId);
+      if (pendingItem && !pendingItem.completed) {
+        const nameMatches = formData.productName.trim() === pendingItem.productName.trim();
+        const categoryMatches = formData.category === pendingItem.category;
+        if (nameMatches && categoryMatches) {
+          completeShoppingListItem(pendingShoppingItemId);
+        }
+      }
     }
 
     setShowSuccess(true);
