@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import Navigation from './Navigation';
+import ExpiryAlertBanner from '../Alert/ExpiryAlertBanner';
 
 interface LayoutProps {
   children: ReactNode;
@@ -9,6 +10,7 @@ const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="min-h-screen flex flex-col">
       <Navigation />
+      <ExpiryAlertBanner />
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="scroll-reveal">

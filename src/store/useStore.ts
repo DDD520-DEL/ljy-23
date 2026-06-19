@@ -102,6 +102,14 @@ export const useStore = create<StoreState>()(
         }));
       },
 
+      markAlertHandled: (id) => {
+        set((state) => ({
+          records: state.records.map((r) =>
+            r.id === id ? { ...r, alertHandled: true } : r
+          ),
+        }));
+      },
+
       getStats: (): StatsData => {
         const { records, currentUser } = get();
         const userRecords = currentUser

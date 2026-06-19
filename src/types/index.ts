@@ -12,6 +12,7 @@ export interface Record {
   notes: string;
   x: number;
   y: number;
+  alertHandled?: boolean;
 }
 
 export interface User {
@@ -108,6 +109,7 @@ export interface StoreState {
   addRecord: (record: Omit<Record, 'id' | 'userId'>) => void;
   deleteRecord: (id: string) => void;
   updateRecord: (id: string, record: Partial<Record>) => void;
+  markAlertHandled: (id: string) => void;
   getStats: () => StatsData;
   getPublicStats: () => PublicStats;
   getRecordsBySupermarket: (name: string) => Record[];
