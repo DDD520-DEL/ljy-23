@@ -274,9 +274,9 @@ export interface StoreState {
   batchUpdateRecords: (updates: Array<{ id: string; data: Partial<Record> }>) => void;
   clearAllData: () => void;
   feedbacks: Feedback[];
-  addFeedback: (feedback: Omit<Feedback, 'id' | 'userId' | 'status' | 'createdAt'>) => Feedback;
+  addFeedback: (feedback: Omit<Feedback, 'id' | 'userId' | 'status' | 'createdAt'>) => { success: boolean; message: string; feedback?: Feedback };
   updateFeedbackStatus: (id: string, status: FeedbackStatus, errorMessage?: string) => void;
   submitFeedback: (id: string) => Promise<void>;
   retryFeedback: (id: string) => Promise<void>;
-  deleteFeedback: (id: string) => void;
+  deleteFeedback: (id: string) => { success: boolean; message: string };
 }

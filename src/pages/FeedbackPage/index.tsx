@@ -67,10 +67,12 @@ const FeedbackItem = ({
   feedback,
   onRetry,
   onDelete,
+  retryError,
 }: {
   feedback: Feedback;
   onRetry: (id: string) => void;
   onDelete: (id: string) => void;
+  retryError?: string | null;
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -130,6 +132,14 @@ const FeedbackItem = ({
               </p>
             </div>
           )}
+          {retryError && (
+            <div className="bg-crimson-50 border border-crimson-200 rounded-lg p-3">
+              <p className="text-sm text-crimson-700 font-body flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                {retryError}
+              </p>
+            </div>
+          )}
           <div className="flex gap-2 pt-2">
             {feedback.status === 'failed' && (
               <button
@@ -166,6 +176,7 @@ const FeedbackItem = ({
 
 const FeedbackPage = () => {
   const navigate = useNavigate();
+  const currentUser = useStore((state) => state.currentUser);
   const userFeedbacks = useUserFeedbacks();
   const addFeedback = useStore((state) => state.addFeedback);
   const submitFeedback = useStore((state) => state.submitFeedback);
@@ -177,24 +188,33 @@ const FeedbackPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [retryError, setRetryError] = useState<{ id: string; message: string } | null>(null);
   const [showHistory, setShowHistory] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!description.trim() || isSubmitting) return;
+    if (!description.trim() || isSubmitting || !currentUser) return;
 
     setIsSubmitting(true);
     setSubmitSuccess(false);
     setSubmitError(null);
+    setDeleteSuccess(null);
+    setDeleteError(null);
 
     try {
-      const newFeedback = addFeedback({
+      const result = addFeedback({
         type: feedbackType,
         description: description.trim(),
         version: APP_VERSION,
       });
 
-      await submitFeedback(newFeedback.id);
+      if (!result.success || !result.feedback) {
+        throw new Error(result.message);
+      }
+
+      await submitFeedback(result.feedback.id);
 
       setSubmitSuccess(true);
       setDescription('');
@@ -208,16 +228,33 @@ const FeedbackPage = () => {
   };
 
   const handleRetry = async (id: string) => {
+    setRetryError(null);
     try {
       await retryFeedback(id);
-    } catch {
-      // 错误已在 store 中处理
+    } catch (error) {
+      setRetryError({
+        id,
+        message: error instanceof Error ? error.message : '重试失败，请稍后再试',
+      });
+      setTimeout(() => {
+        setRetryError((prev) => (prev?.id === id ? null : prev));
+      }, 3000);
     }
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm('确定要删除这条反馈记录吗？')) {
-      deleteFeedback(id);
+    if (!window.confirm('确定要删除这条反馈记录吗？')) return;
+
+    setDeleteSuccess(null);
+    setDeleteError(null);
+
+    const result = deleteFeedback(id);
+    if (result.success) {
+      setDeleteSuccess(result.message);
+      setTimeout(() => setDeleteSuccess(null), 3000);
+    } else {
+      setDeleteError(result.message);
+      setTimeout(() => setDeleteError(null), 3000);
     }
   };
 
@@ -250,6 +287,18 @@ const FeedbackPage = () => {
       <form onSubmit={handleSubmit} className="card-paper p-6 relative space-y-6">
         <div className="tape" style={{ top: '-8px', left: '30px', transform: 'rotate(-3deg)' }} />
 
+        {!currentUser && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+            <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-display text-amber-800 font-medium">请先登录</p>
+              <p className="text-sm text-amber-600 font-body">
+                登录后才能提交反馈和查看你的反馈历史记录。
+              </p>
+            </div>
+          </div>
+        )}
+
         {submitSuccess && (
           <div className="bg-forest-50 border border-forest-200 rounded-xl p-4 flex items-center gap-3">
             <CheckCircle className="w-6 h-6 text-forest-600 flex-shrink-0" />
@@ -260,8 +309,28 @@ const FeedbackPage = () => {
           </div>
         )}
 
+        {deleteSuccess && (
+          <div className="bg-forest-50 border border-forest-200 rounded-xl p-4 flex items-center gap-3">
+            <CheckCircle className="w-6 h-6 text-forest-600 flex-shrink-0" />
+            <div>
+              <p className="font-display text-forest-800 font-medium">删除成功</p>
+              <p className="text-sm text-forest-600 font-body">{deleteSuccess}</p>
+            </div>
+          </div>
+        )}
+
+        {deleteError && (
+          <div className="bg-crimson-50 border border-crimson-200 rounded-xl p-4 flex items-start gap-3">
+            <AlertTriangle className="w-6 h-6 text-crimson-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-display text-crimson-800 font-medium">删除失败</p>
+              <p className="text-sm text-crimson-600 font-body">{deleteError}</p>
+            </div>
+          </div>
+        )}
+
         <div>
-          <label className="block font-display text-lg text-amber-900 mb-3">
+          <label className={`block font-display text-lg mb-3 ${!currentUser ? 'text-amber-400' : 'text-amber-900'}`}>
             问题类型
           </label>
           <div className="grid grid-cols-2 gap-3">
@@ -272,8 +341,9 @@ const FeedbackPage = () => {
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => setFeedbackType(option.value)}
-                  className={`p-4 rounded-xl border-2 transition-all text-left flex items-center gap-3 ${
+                  onClick={() => currentUser && setFeedbackType(option.value)}
+                  disabled={!currentUser}
+                  className={`p-4 rounded-xl border-2 transition-all text-left flex items-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed ${
                     isSelected
                       ? 'border-amber-500 bg-amber-50 shadow-inner'
                       : 'border-amber-200 bg-parchment-50 hover:border-amber-300'
@@ -294,16 +364,17 @@ const FeedbackPage = () => {
         </div>
 
         <div>
-          <label htmlFor="description" className="block font-display text-lg text-amber-900 mb-3">
+          <label htmlFor="description" className={`block font-display text-lg mb-3 ${!currentUser ? 'text-amber-400' : 'text-amber-900'}`}>
             详细描述
           </label>
           <textarea
             id="description"
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="请详细描述你的问题或建议，越具体越好..."
+            onChange={(e) => currentUser && setDescription(e.target.value)}
+            placeholder={!currentUser ? '请先登录后再填写反馈' : '请详细描述你的问题或建议，越具体越好...'}
             rows={6}
-            className="w-full p-4 rounded-xl border-2 border-amber-200 bg-parchment-50 font-body text-amber-800 placeholder:text-amber-400 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200 transition-all resize-none"
+            disabled={!currentUser}
+            className="w-full p-4 rounded-xl border-2 border-amber-200 bg-parchment-50 font-body text-amber-800 placeholder:text-amber-400 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200 transition-all resize-none disabled:opacity-60 disabled:cursor-not-allowed"
           />
           <p className="text-sm text-amber-500 mt-2 font-body">
             {description.length} 字
@@ -389,8 +460,17 @@ const FeedbackPage = () => {
             {userFeedbacks.length === 0 ? (
               <div className="text-center py-8">
                 <MessageSquare className="w-12 h-12 text-amber-200 mx-auto mb-3" />
-                <p className="text-amber-500 font-body">暂无反馈记录</p>
-                <p className="text-sm text-amber-400 font-body mt-1">提交你的第一条反馈吧</p>
+                {!currentUser ? (
+                  <>
+                    <p className="text-amber-500 font-body">请先登录</p>
+                    <p className="text-sm text-amber-400 font-body mt-1">登录后可查看你的反馈历史记录</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-amber-500 font-body">暂无反馈记录</p>
+                    <p className="text-sm text-amber-400 font-body mt-1">提交你的第一条反馈吧</p>
+                  </>
+                )}
               </div>
             ) : (
               userFeedbacks.map((feedback) => (
@@ -399,6 +479,7 @@ const FeedbackPage = () => {
                   feedback={feedback}
                   onRetry={handleRetry}
                   onDelete={handleDelete}
+                  retryError={retryError?.id === feedback.id ? retryError.message : null}
                 />
               ))
             )}

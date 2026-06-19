@@ -561,9 +561,11 @@ export const useStore = create<StoreState>()(
 
       addFeedback: (feedbackData) => {
         const { currentUser } = get();
+        if (!currentUser) return { success: false, message: '请先登录后再提交反馈' };
+
         const newFeedback: Feedback = {
           id: generateId(),
-          userId: currentUser ? currentUser.id : null,
+          userId: currentUser.id,
           type: feedbackData.type,
           description: feedbackData.description,
           version: feedbackData.version,
@@ -573,7 +575,7 @@ export const useStore = create<StoreState>()(
         set((state) => ({
           feedbacks: [newFeedback, ...state.feedbacks],
         }));
-        return newFeedback;
+        return { success: true, message: '反馈已保存', feedback: newFeedback };
       },
 
       updateFeedbackStatus: (id, status, errorMessage) => {
@@ -719,10 +721,8 @@ export const useUserFeedbacks = () => {
   const feedbacks = useStore((state) => state.feedbacks);
   const currentUser = useStore((state) => state.currentUser);
   return useMemo(() => {
-    if (currentUser) {
-      return feedbacks.filter((f) => f.userId === currentUser.id);
-    }
-    return feedbacks.filter((f) => f.userId === null);
+    if (!currentUser) return [];
+    return feedbacks.filter((f) => f.userId === currentUser.id);
   }, [feedbacks, currentUser]);
 };
 
