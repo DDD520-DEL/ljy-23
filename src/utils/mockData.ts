@@ -36,6 +36,89 @@ const getRandomPastDate = (maxDays: number): string => {
   return date.toISOString().split('T')[0];
 };
 
+const getRandomTime = (): string => {
+  const hour = 6 + Math.floor(Math.random() * 16);
+  const minute = Math.floor(Math.random() * 60);
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+};
+
+const getTimeBySupermarketType = (supermarketName: string): string => {
+  const convenienceStores = ['7-11', '全家', '罗森'];
+  const premiumStores = ['Ole\'精品超市', '盒马鲜生'];
+  
+  let hour: number;
+  if (convenienceStores.some(s => supermarketName.includes(s))) {
+    const r = Math.random();
+    if (r < 0.25) {
+      hour = 7 + Math.floor(Math.random() * 3);
+    } else if (r < 0.5) {
+      hour = 11 + Math.floor(Math.random() * 3);
+    } else if (r < 0.75) {
+      hour = 17 + Math.floor(Math.random() * 3);
+    } else {
+      hour = 20 + Math.floor(Math.random() * 4);
+    }
+  } else if (premiumStores.some(s => supermarketName.includes(s))) {
+    const r = Math.random();
+    if (r < 0.3) {
+      hour = 10 + Math.floor(Math.random() * 3);
+    } else if (r < 0.7) {
+      hour = 14 + Math.floor(Math.random() * 4);
+    } else {
+      hour = 19 + Math.floor(Math.random() * 3);
+    }
+  } else {
+    const r = Math.random();
+    if (r < 0.25) {
+      hour = 8 + Math.floor(Math.random() * 2);
+    } else if (r < 0.55) {
+      hour = 10 + Math.floor(Math.random() * 4);
+    } else if (r < 0.85) {
+      hour = 17 + Math.floor(Math.random() * 4);
+    } else {
+      hour = 20 + Math.floor(Math.random() * 2);
+    }
+  }
+  
+  const minute = Math.floor(Math.random() * 60);
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+};
+
+const adjustTimeByCategory = (time: string, category: string): string => {
+  const [hourStr] = time.split(':');
+  let hour = parseInt(hourStr);
+  
+  switch (category) {
+    case '烘焙甜品':
+      hour = Math.max(7, Math.min(11, hour));
+      break;
+    case '肉蛋生鲜':
+      hour = Math.max(7, Math.min(10, hour + Math.floor(Math.random() * 2)));
+      break;
+    case '奶制品':
+      hour = Math.max(8, Math.min(12, hour));
+      break;
+    case '零食饮料':
+      hour = Math.max(10, Math.min(22, hour));
+      break;
+    case '酒水':
+      hour = Math.max(14, Math.min(22, hour + 2));
+      break;
+    case '冷冻食品':
+    case '粮油调味':
+    case '日用百货':
+      hour = Math.max(9, Math.min(20, hour));
+      break;
+  }
+  
+  const minute = Math.floor(Math.random() * 60);
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+};
+
+const combineDateAndTime = (dateStr: string, timeStr: string): string => {
+  return `${dateStr}T${timeStr}:00`;
+};
+
 const supermarketData = [
   { name: '沃尔玛', x: 20, y: 30 },
   { name: '永辉超市', x: 45, y: 25 },
@@ -98,6 +181,11 @@ export const generateMockRecords = (userId: string = 'mock-user'): Record[] => {
     const discount = 3 + Math.floor(Math.random() * 6);
     const expiryDays = 1 + Math.floor(Math.random() * 14);
     
+    const baseTime = getTimeBySupermarketType(supermarket.name);
+    const finalTime = adjustTimeByCategory(baseTime, product.category);
+    const purchaseDateOnly = getRandomPastDate(30);
+    const purchaseDateTime = combineDateAndTime(purchaseDateOnly, finalTime);
+    
     records.push({
       id: generateId(),
       userId,
@@ -108,7 +196,7 @@ export const generateMockRecords = (userId: string = 'mock-user'): Record[] => {
       originalPrice: product.price,
       discount: discount,
       expiryDate: getRandomDate(expiryDays, 7),
-      purchaseDate: getRandomPastDate(30),
+      purchaseDate: purchaseDateTime,
       notes: Math.random() > 0.5 ? '超级划算，下次还来！' : '货架不太好找，问了导购才找到',
       x: supermarket.x + (Math.random() - 0.5) * 8,
       y: supermarket.y + (Math.random() - 0.5) * 8,

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Store, MapPin, Tag, Coins, Percent, Calendar, FileText, Save, RotateCcw } from 'lucide-react';
+import { Store, MapPin, Tag, Coins, Percent, Calendar, Clock, FileText, Save, RotateCcw } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { calculateDiscountPrice, calculateSavings, calculateDaysUntilExpiry, formatCurrency, formatDiscount } from '../../utils/calculations';
 import { getSupermarketCoords } from '../../utils/mockData';
@@ -12,6 +12,8 @@ const RecordForm = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   
   const today = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   
   const [formData, setFormData] = useState<FormData>({
     supermarketName: '',
@@ -22,6 +24,7 @@ const RecordForm = () => {
     discount: '5',
     expiryDate: '',
     purchaseDate: today,
+    purchaseTime: currentTime,
     notes: '',
   });
 
@@ -31,6 +34,8 @@ const RecordForm = () => {
   };
 
   const resetForm = () => {
+    const now = new Date();
+    const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     setFormData({
       supermarketName: '',
       shelfLocation: '',
@@ -40,6 +45,7 @@ const RecordForm = () => {
       discount: '5',
       expiryDate: '',
       purchaseDate: today,
+      purchaseTime: nowTime,
       notes: '',
     });
   };
@@ -52,6 +58,8 @@ const RecordForm = () => {
       y: 20 + Math.random() * 60 
     };
 
+    const purchaseDateTime = `${formData.purchaseDate}T${formData.purchaseTime}:00`;
+
     addRecord({
       supermarketName: formData.supermarketName,
       shelfLocation: formData.shelfLocation,
@@ -60,7 +68,7 @@ const RecordForm = () => {
       originalPrice: parseFloat(formData.originalPrice),
       discount: parseFloat(formData.discount),
       expiryDate: formData.expiryDate,
-      purchaseDate: formData.purchaseDate,
+      purchaseDate: purchaseDateTime,
       notes: formData.notes,
       x: coords.x,
       y: coords.y,
@@ -266,6 +274,21 @@ const RecordForm = () => {
                 onChange={handleChange}
                 className="input-field font-mono"
                 max={today}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="label-text">
+                <Clock className="inline w-5 h-5 mr-2" />
+                购买时间
+              </label>
+              <input
+                type="time"
+                name="purchaseTime"
+                value={formData.purchaseTime}
+                onChange={handleChange}
+                className="input-field font-mono"
                 required
               />
             </div>

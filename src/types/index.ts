@@ -170,5 +170,6 @@ export interface FormData {
   discount: string;
   expiryDate: string;
   purchaseDate: string;
+  purchaseTime: string;
   notes: string;
 }

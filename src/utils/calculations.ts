@@ -342,12 +342,6 @@ export const getTimeSlot = (dateStr: string): string => {
   return '夜间 22:00-6:00';
 };
 
-export const getDayOfWeek = (dateStr: string): string => {
-  const date = new Date(dateStr);
-  const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-  return days[date.getDay()];
-};
-
 export const computeCategoryAnalysis = (records: Record[]): CategoryAnalysis[] => {
   if (records.length === 0) return [];
 
