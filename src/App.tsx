@@ -11,6 +11,7 @@ import PublicDashboard from "@/pages/PublicDashboard";
 import ProductDetailPage from "@/pages/ProductDetailPage";
 import ShoppingListPage from "@/pages/ShoppingListPage";
 import SettingsPage from "@/pages/SettingsPage";
+import CalendarPage from "@/pages/CalendarPage";
 import { useStore } from "@/store/useStore";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -64,6 +65,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/calendar"
+            element={
+              <ProtectedRoute>
+                <CalendarPage />
               </ProtectedRoute>
             }
           />
