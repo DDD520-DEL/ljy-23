@@ -382,9 +382,9 @@ const ListPage = () => {
                     </button>
                     <button
                       onClick={handleExportExcelFiltered}
-                      disabled={filteredRecords.length === 0 || filteredRecords.length === records.length}
+                      disabled={!hasActiveFilters || filteredRecords.length === 0}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left ${
-                        filteredRecords.length === 0 || filteredRecords.length === records.length
+                        !hasActiveFilters || filteredRecords.length === 0
                           ? 'opacity-40 cursor-not-allowed'
                           : 'hover:bg-amber-50'
                       }`}
@@ -413,9 +413,9 @@ const ListPage = () => {
                     </button>
                     <button
                       onClick={handleExportCsvFiltered}
-                      disabled={filteredRecords.length === 0 || filteredRecords.length === records.length}
+                      disabled={!hasActiveFilters || filteredRecords.length === 0}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left ${
-                        filteredRecords.length === 0 || filteredRecords.length === records.length
+                        !hasActiveFilters || filteredRecords.length === 0
                           ? 'opacity-40 cursor-not-allowed'
                           : 'hover:bg-amber-50'
                       }`}
