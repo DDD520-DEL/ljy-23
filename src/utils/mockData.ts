@@ -89,7 +89,7 @@ const shelfLocations = [
   '仓库出口特价区',
 ];
 
-export const generateMockRecords = (): Record[] => {
+export const generateMockRecords = (userId: string = 'mock-user'): Record[] => {
   const records: Record[] = [];
   
   for (let i = 0; i < 15; i++) {
@@ -100,6 +100,7 @@ export const generateMockRecords = (): Record[] => {
     
     records.push({
       id: generateId(),
+      userId,
       supermarketName: supermarket.name,
       shelfLocation: shelfLocations[Math.floor(Math.random() * shelfLocations.length)],
       productName: product.name,

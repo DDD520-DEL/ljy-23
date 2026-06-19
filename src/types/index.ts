@@ -1,5 +1,6 @@
 export interface Record {
   id: string;
+  userId: string;
   supermarketName: string;
   shelfLocation: string;
   productName: string;
@@ -11,6 +12,13 @@ export interface Record {
   notes: string;
   x: number;
   y: number;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  password: string;
+  createdAt: string;
 }
 
 export interface Supermarket {
@@ -59,14 +67,26 @@ export interface StatsData {
   byMonth: MonthStat[];
 }
 
+export interface PublicStats {
+  totalRecords: number;
+  totalSavings: number;
+  totalUsers: number;
+}
+
 export interface StoreState {
+  users: User[];
+  currentUser: User | null;
   records: Record[];
   supermarkets: Supermarket[];
   categories: Category[];
-  addRecord: (record: Omit<Record, 'id'>) => void;
+  register: (username: string, password: string) => { success: boolean; message: string };
+  login: (username: string, password: string) => { success: boolean; message: string };
+  logout: () => void;
+  addRecord: (record: Omit<Record, 'id' | 'userId'>) => void;
   deleteRecord: (id: string) => void;
   updateRecord: (id: string, record: Partial<Record>) => void;
   getStats: () => StatsData;
+  getPublicStats: () => PublicStats;
   getRecordsBySupermarket: (name: string) => Record[];
   getRecordsByCategory: (category: string) => Record[];
   loadFromStorage: () => void;

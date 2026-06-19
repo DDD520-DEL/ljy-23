@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useStore } from '../../store/useStore';
+import { useStore, useUserRecords } from '../../store/useStore';
 import RecordCard from '../../components/Card/RecordCard';
 import { Search, Filter, Calendar, Store, Tag, ListTodo, X, ArrowUpDown } from 'lucide-react';
 import { formatDate } from '../../utils/calculations';
@@ -7,7 +7,8 @@ import { formatDate } from '../../utils/calculations';
 type SortOption = 'date-desc' | 'date-asc' | 'price-desc' | 'price-asc' | 'discount-asc' | 'discount-desc';
 
 const ListPage = () => {
-  const { records, supermarkets, categories, deleteRecord } = useStore();
+  const { supermarkets, categories, deleteRecord } = useStore();
+  const records = useUserRecords();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSupermarket, setSelectedSupermarket] = useState<string>('');

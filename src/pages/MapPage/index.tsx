@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
-import { useStore } from '../../store/useStore';
+import { useStore, useUserRecords } from '../../store/useStore';
 import RecordCard from '../../components/Card/RecordCard';
 import { MapPin, ShoppingBag, Coins, Percent, X, Compass, Target } from 'lucide-react';
 import { formatCurrency, formatDiscount } from '../../utils/calculations';
 
 const MapPage = () => {
-  const { supermarkets, records, deleteRecord, getStats } = useStore();
+  const { supermarkets, deleteRecord, getStats } = useStore();
+  const records = useUserRecords();
   const stats = getStats();
   const [selectedSupermarket, setSelectedSupermarket] = useState<string | null>(null);
   const [hoveredSupermarket, setHoveredSupermarket] = useState<string | null>(null);

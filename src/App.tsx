@@ -1,19 +1,50 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Layout from "@/components/Layout/Layout";
+import ProtectedRoute from "@/components/Auth/ProtectedRoute";
 import RecordPage from "@/pages/RecordPage";
 import StatsPage from "@/pages/StatsPage";
 import MapPage from "@/pages/MapPage";
 import ListPage from "@/pages/ListPage";
+import AuthPage from "@/pages/AuthPage";
+import PublicDashboard from "@/pages/PublicDashboard";
+import { useStore } from "@/store/useStore";
+
+const HomePage = () => {
+  const { currentUser } = useStore();
+  return currentUser ? <RecordPage /> : <PublicDashboard />;
+};
 
 export default function App() {
   return (
     <Router>
       <Layout>
         <Routes>
-          <Route path="/" element={<RecordPage />} />
-          <Route path="/stats" element={<StatsPage />} />
-          <Route path="/map" element={<MapPage />} />
-          <Route path="/list" element={<ListPage />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route
+            path="/stats"
+            element={
+              <ProtectedRoute>
+                <StatsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/map"
+            element={
+              <ProtectedRoute>
+                <MapPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/list"
+            element={
+              <ProtectedRoute>
+                <ListPage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Layout>
     </Router>
