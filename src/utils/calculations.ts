@@ -1,4 +1,4 @@
-import type { Record, StatsData, SupermarketStat, CategoryStat, MonthStat, ProductPriceHistory, PriceHistoryPoint } from '../types';
+import type { Record, StatsData, SupermarketStat, CategoryStat, MonthStat, ProductPriceHistory, PriceHistoryPoint, SupermarketScore, CategoryAnalysis, TimeSlotAnalysis, SupermarketDetail } from '../types';
 import { defaultSupermarkets, getCategoryColor } from './mockData';
 
 export const calculateDiscountPrice = (originalPrice: number, discount: number): number => {
@@ -252,5 +252,205 @@ export const computeProductPriceHistory = (records: Record[], productName: strin
     averageDiscount: Number((totalDiscount / history.length).toFixed(1)),
     averagePrice: Number((totalPrice / history.length).toFixed(2)),
     history,
+  };
+};
+
+const normalize = (value: number, min: number, max: number): number => {
+  if (max === min) return 50;
+  return Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+};
+
+const getGradeFromScore = (score: number): string => {
+  if (score >= 90) return 'S';
+  if (score >= 80) return 'A';
+  if (score >= 70) return 'B';
+  if (score >= 60) return 'C';
+  return 'D';
+};
+
+export const computeSupermarketScores = (records: Record[]): SupermarketScore[] => {
+  if (records.length === 0) return [];
+
+  const supermarketMap = new Map<string, { count: number; totalSavings: number; totalDiscount: number; x: number; y: number }>();
+
+  records.forEach((record) => {
+    const savings = calculateSavings(record.originalPrice, record.discount);
+
+    if (!supermarketMap.has(record.supermarketName)) {
+      const supermarket = defaultSupermarkets.find(s => s.name === record.supermarketName);
+      supermarketMap.set(record.supermarketName, {
+        count: 0,
+        totalSavings: 0,
+        totalDiscount: 0,
+        x: supermarket?.x || 50,
+        y: supermarket?.y || 50,
+      });
+    }
+    const data = supermarketMap.get(record.supermarketName)!;
+    data.count++;
+    data.totalSavings += savings;
+    data.totalDiscount += record.discount;
+  });
+
+  const stats = Array.from(supermarketMap.entries()).map(([name, data]) => ({
+    name,
+    count: data.count,
+    totalSavings: Number(data.totalSavings.toFixed(2)),
+    averageDiscount: Number((data.totalDiscount / data.count).toFixed(1)),
+    x: data.x,
+    y: data.y,
+  }));
+
+  const maxCount = Math.max(...stats.map(s => s.count));
+  const minCount = Math.min(...stats.map(s => s.count));
+  const maxSavings = Math.max(...stats.map(s => s.totalSavings));
+  const minSavings = Math.min(...stats.map(s => s.totalSavings));
+
+  const scores: SupermarketScore[] = stats.map(stat => {
+    const discountScore = normalize(10 - stat.averageDiscount, 0, 9) * 1.11;
+    const frequencyScore = normalize(stat.count, minCount, maxCount);
+    const savingsScore = normalize(stat.totalSavings, minSavings, maxSavings);
+
+    const totalScore = Number((discountScore * 0.4 + frequencyScore * 0.3 + savingsScore * 0.3).toFixed(1));
+    const grade = getGradeFromScore(totalScore);
+
+    return {
+      name: stat.name,
+      count: stat.count,
+      totalSavings: stat.totalSavings,
+      averageDiscount: stat.averageDiscount,
+      discountScore: Number(discountScore.toFixed(1)),
+      frequencyScore: Number(frequencyScore.toFixed(1)),
+      savingsScore: Number(savingsScore.toFixed(1)),
+      totalScore,
+      grade,
+      x: stat.x,
+      y: stat.y,
+    };
+  });
+
+  return scores.sort((a, b) => b.totalScore - a.totalScore);
+};
+
+export const getTimeSlot = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  const hour = date.getHours();
+  if (hour >= 6 && hour < 10) return '早晨 6:00-10:00';
+  if (hour >= 10 && hour < 14) return '上午 10:00-14:00';
+  if (hour >= 14 && hour < 18) return '下午 14:00-18:00';
+  if (hour >= 18 && hour < 22) return '傍晚 18:00-22:00';
+  return '夜间 22:00-6:00';
+};
+
+export const getDayOfWeek = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  return days[date.getDay()];
+};
+
+export const computeCategoryAnalysis = (records: Record[]): CategoryAnalysis[] => {
+  if (records.length === 0) return [];
+
+  const categoryMap = new Map<string, { count: number; totalSavings: number; totalDiscount: number }>();
+
+  records.forEach((record) => {
+    const savings = calculateSavings(record.originalPrice, record.discount);
+
+    if (!categoryMap.has(record.category)) {
+      categoryMap.set(record.category, {
+        count: 0,
+        totalSavings: 0,
+        totalDiscount: 0,
+      });
+    }
+    const data = categoryMap.get(record.category)!;
+    data.count++;
+    data.totalSavings += savings;
+    data.totalDiscount += record.discount;
+  });
+
+  const analysis: CategoryAnalysis[] = Array.from(categoryMap.entries()).map(([name, data]) => {
+    const averageDiscount = Number((data.totalDiscount / data.count).toFixed(1));
+    const discountScore = normalize(10 - averageDiscount, 0, 9) * 1.11;
+    const countScore = normalize(data.count, 1, Math.max(...Array.from(categoryMap.values()).map(v => v.count)));
+    const savingsScore = normalize(data.totalSavings, 0, Math.max(...Array.from(categoryMap.values()).map(v => v.totalSavings)));
+    const score = Number((discountScore * 0.5 + countScore * 0.25 + savingsScore * 0.25).toFixed(1));
+
+    return {
+      name,
+      count: data.count,
+      totalSavings: Number(data.totalSavings.toFixed(2)),
+      averageDiscount,
+      score,
+      color: getCategoryColor(name),
+    };
+  });
+
+  return analysis.sort((a, b) => b.score - a.score);
+};
+
+export const computeTimeSlotAnalysis = (records: Record[]): TimeSlotAnalysis[] => {
+  if (records.length === 0) return [];
+
+  const timeSlotMap = new Map<string, { count: number; totalSavings: number; totalDiscount: number }>();
+
+  records.forEach((record) => {
+    const timeSlot = getTimeSlot(record.purchaseDate);
+    const savings = calculateSavings(record.originalPrice, record.discount);
+
+    if (!timeSlotMap.has(timeSlot)) {
+      timeSlotMap.set(timeSlot, {
+        count: 0,
+        totalSavings: 0,
+        totalDiscount: 0,
+      });
+    }
+    const data = timeSlotMap.get(timeSlot)!;
+    data.count++;
+    data.totalSavings += savings;
+    data.totalDiscount += record.discount;
+  });
+
+  const analysis: TimeSlotAnalysis[] = Array.from(timeSlotMap.entries()).map(([timeSlot, data]) => {
+    const averageDiscount = Number((data.totalDiscount / data.count).toFixed(1));
+    const discountScore = normalize(10 - averageDiscount, 0, 9) * 1.11;
+    const countScore = normalize(data.count, 1, Math.max(...Array.from(timeSlotMap.values()).map(v => v.count)));
+    const savingsScore = normalize(data.totalSavings, 0, Math.max(...Array.from(timeSlotMap.values()).map(v => v.totalSavings)));
+    const score = Number((discountScore * 0.5 + countScore * 0.3 + savingsScore * 0.2).toFixed(1));
+
+    return {
+      timeSlot,
+      count: data.count,
+      averageDiscount,
+      totalSavings: Number(data.totalSavings.toFixed(2)),
+      score,
+    };
+  });
+
+  return analysis.sort((a, b) => b.score - a.score);
+};
+
+export const computeSupermarketDetail = (allRecords: Record[], supermarketName: string): SupermarketDetail | null => {
+  const supermarketRecords = allRecords.filter(r => r.supermarketName === supermarketName);
+
+  if (supermarketRecords.length === 0) return null;
+
+  const scores = computeSupermarketScores(allRecords);
+  const score = scores.find(s => s.name === supermarketName);
+
+  if (!score) return null;
+
+  const topCategories = computeCategoryAnalysis(supermarketRecords).slice(0, 5);
+  const topTimeSlots = computeTimeSlotAnalysis(supermarketRecords).slice(0, 4);
+  const recentRecords = [...supermarketRecords]
+    .sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime())
+    .slice(0, 5);
+
+  return {
+    name: supermarketName,
+    score,
+    topCategories,
+    topTimeSlots,
+    recentRecords,
   };
 };

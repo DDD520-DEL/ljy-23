@@ -97,6 +97,45 @@ export interface ProductPriceHistory {
   history: PriceHistoryPoint[];
 }
 
+export interface CategoryAnalysis {
+  name: string;
+  count: number;
+  totalSavings: number;
+  averageDiscount: number;
+  score: number;
+  color: string;
+}
+
+export interface TimeSlotAnalysis {
+  timeSlot: string;
+  count: number;
+  averageDiscount: number;
+  totalSavings: number;
+  score: number;
+}
+
+export interface SupermarketScore {
+  name: string;
+  count: number;
+  totalSavings: number;
+  averageDiscount: number;
+  discountScore: number;
+  frequencyScore: number;
+  savingsScore: number;
+  totalScore: number;
+  grade: string;
+  x: number;
+  y: number;
+}
+
+export interface SupermarketDetail {
+  name: string;
+  score: SupermarketScore;
+  topCategories: CategoryAnalysis[];
+  topTimeSlots: TimeSlotAnalysis[];
+  recentRecords: Record[];
+}
+
 export interface StoreState {
   users: User[];
   currentUser: User | null;
@@ -117,6 +156,8 @@ export interface StoreState {
   getRecordsByProductName: (productName: string) => Record[];
   getProductPriceHistory: (productName: string) => ProductPriceHistory | null;
   getAllProductNames: () => string[];
+  getSupermarketScores: () => SupermarketScore[];
+  getSupermarketDetail: (name: string) => SupermarketDetail | null;
   loadFromStorage: () => void;
 }
 

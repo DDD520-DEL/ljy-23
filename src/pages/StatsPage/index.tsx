@@ -1,17 +1,22 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useUserStats } from '../../store/useStore';
+import { useUserStats, useSupermarketScores, useSupermarketDetail } from '../../store/useStore';
 import StatsCard from '../../components/Card/StatsCard';
 import SupermarketChart from '../../components/Chart/SupermarketChart';
 import CategoryPieChart from '../../components/Chart/CategoryPieChart';
 import TrendChart from '../../components/Chart/TrendChart';
+import SupermarketScoreRanking from '../../components/Chart/SupermarketScoreRanking';
+import SupermarketDetailModal from '../../components/Chart/SupermarketDetailModal';
 import ShareReportModal, { ShareReportInitialState } from '../../components/Report/ShareReportModal';
 import { ScrollText, Coins, Percent, Calendar, Trophy, Share2 } from 'lucide-react';
 
 const StatsPage = () => {
   const stats = useUserStats();
+  const supermarketScores = useSupermarketScores();
   const [searchParams, setSearchParams] = useSearchParams();
   const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedSupermarket, setSelectedSupermarket] = useState<string | null>(null);
+  const selectedDetail = useSupermarketDetail(selectedSupermarket || '');
 
   const shareInitialState = useMemo<ShareReportInitialState | undefined>(() => {
     const hasReport = searchParams.get('report') === '1';
@@ -47,6 +52,14 @@ const StatsPage = () => {
       setSearchParams(newParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
+  const handleSelectSupermarket = useCallback((name: string) => {
+    setSelectedSupermarket(name);
+  }, []);
+
+  const handleCloseDetail = useCallback(() => {
+    setSelectedSupermarket(null);
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -198,6 +211,13 @@ const StatsPage = () => {
         </div>
       )}
 
+      {supermarketScores.length > 0 && (
+        <SupermarketScoreRanking
+          data={supermarketScores}
+          onSelectSupermarket={handleSelectSupermarket}
+        />
+      )}
+
       {stats.totalRecords === 0 && (
         <div className="card-paper p-12 text-center">
           <div className="text-6xl mb-4">📊</div>
@@ -210,6 +230,12 @@ const StatsPage = () => {
         isOpen={showShareModal}
         onClose={handleCloseModal}
         initialState={shareInitialState}
+      />
+
+      <SupermarketDetailModal
+        isOpen={selectedSupermarket !== null}
+        onClose={handleCloseDetail}
+        detail={selectedDetail}
       />
     </div>
   );

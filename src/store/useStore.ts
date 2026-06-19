@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useMemo } from 'react';
-import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory } from '../types';
-import { generateId, calculateTotalSavings, computeStatsFromRecords, computeProductPriceHistory } from '../utils/calculations';
+import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory, SupermarketScore, SupermarketDetail } from '../types';
+import { generateId, calculateTotalSavings, computeStatsFromRecords, computeProductPriceHistory, computeSupermarketScores, computeSupermarketDetail } from '../utils/calculations';
 import { defaultSupermarkets, defaultCategories } from '../utils/mockData';
 
 export const useStore = create<StoreState>()(
@@ -180,6 +180,22 @@ export const useStore = create<StoreState>()(
         return Array.from(productNames).map(key => nameMap.get(key)!);
       },
 
+      getSupermarketScores: (): SupermarketScore[] => {
+        const { records, currentUser } = get();
+        const userRecords = currentUser
+          ? records.filter(r => r.userId === currentUser.id)
+          : [];
+        return computeSupermarketScores(userRecords);
+      },
+
+      getSupermarketDetail: (name: string): SupermarketDetail | null => {
+        const { records, currentUser } = get();
+        const userRecords = currentUser
+          ? records.filter(r => r.userId === currentUser.id)
+          : [];
+        return computeSupermarketDetail(userRecords, name);
+      },
+
       loadFromStorage: () => {
       },
     }),
@@ -226,4 +242,14 @@ export const useProductPriceHistory = (productName: string): ProductPriceHistory
   return useMemo(() => {
     return computeProductPriceHistory(records, productName);
   }, [records, productName]);
+};
+
+export const useSupermarketScores = (): SupermarketScore[] => {
+  const records = useUserRecords();
+  return useMemo(() => computeSupermarketScores(records), [records]);
+};
+
+export const useSupermarketDetail = (name: string): SupermarketDetail | null => {
+  const records = useUserRecords();
+  return useMemo(() => computeSupermarketDetail(records, name), [records, name]);
 };
