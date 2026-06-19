@@ -1,12 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useStore, useUserRecords, useUserTags } from '../../store/useStore';
 import RecordCard from '../../components/Card/RecordCard';
 import TagManager from '../../components/Tag/TagManager';
 import BatchTagModal from '../../components/Tag/BatchTagModal';
+import ImportModal from '../../components/ImportExport/ImportModal';
 import { 
   Search, Filter, Calendar, Store, Tag, ListTodo, X, ArrowUpDown, 
-  Star, CheckSquare, Square, Tags, Trash2, Bookmark
+  Star, CheckSquare, Square, Tags, Trash2, Bookmark,
+  Download, Upload, FileSpreadsheet, FileText, ChevronDown,
 } from 'lucide-react';
+import { exportRecords, generateImportTemplate } from '../../utils/importExport';
 
 type SortOption = 'date-desc' | 'date-asc' | 'price-desc' | 'price-asc' | 'discount-asc' | 'discount-desc' | 'favorites-first';
 
@@ -32,6 +35,9 @@ const ListPage = () => {
   const [selectedRecordIds, setSelectedRecordIds] = useState<string[]>([]);
   const [showTagManager, setShowTagManager] = useState(false);
   const [showBatchTagModal, setShowBatchTagModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
 
   const filteredRecords = useMemo(() => {
     let result = [...records];
@@ -177,6 +183,41 @@ const ListPage = () => {
     setSelectedRecordIds([]);
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleExportExcelAll = () => {
+    exportRecords(records, { format: 'excel' });
+    setShowExportMenu(false);
+  };
+
+  const handleExportExcelFiltered = () => {
+    exportRecords(filteredRecords, { format: 'excel', filename: `临期猎人_筛选结果_${new Date().toISOString().slice(0, 10)}` });
+    setShowExportMenu(false);
+  };
+
+  const handleExportCsvAll = () => {
+    exportRecords(records, { format: 'csv' });
+    setShowExportMenu(false);
+  };
+
+  const handleExportCsvFiltered = () => {
+    exportRecords(filteredRecords, { format: 'csv', filename: `临期猎人_筛选结果_${new Date().toISOString().slice(0, 10)}` });
+    setShowExportMenu(false);
+  };
+
+  const handleDownloadTemplate = () => {
+    generateImportTemplate();
+    setShowExportMenu(false);
+  };
+
   return (
     <div className="space-y-6">
       {isBatchMode && (
@@ -302,6 +343,109 @@ const ListPage = () => {
               <CheckSquare className="w-5 h-5" />
               批量操作
             </button>
+
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="btn-stamp btn-secondary flex items-center gap-2"
+            >
+              <Upload className="w-5 h-5" />
+              导入
+            </button>
+
+            <div className="relative" ref={exportMenuRef}>
+              <button
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                className={`btn-stamp flex items-center gap-2 ${
+                  showExportMenu ? 'btn-primary' : 'btn-secondary'
+                }`}
+              >
+                <Download className="w-5 h-5" />
+                导出
+                <ChevronDown className={`w-4 h-4 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showExportMenu && (
+                <div className="absolute right-0 top-full mt-2 w-64 card-paper border-2 border-amber-200 rounded-xl shadow-xl z-40 overflow-hidden animate-fadeIn">
+                  <div className="p-2">
+                    <div className="px-3 py-2 text-xs font-bold text-amber-700 uppercase tracking-wide border-b border-amber-100 mb-1">
+                      导出 Excel (.xlsx)
+                    </div>
+                    <button
+                      onClick={handleExportExcelAll}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-amber-50 transition-colors text-left"
+                    >
+                      <FileSpreadsheet className="w-5 h-5 text-green-600" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-amber-900">导出全部记录</div>
+                        <div className="text-xs text-amber-600">共 {records.length} 条</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={handleExportExcelFiltered}
+                      disabled={filteredRecords.length === 0 || filteredRecords.length === records.length}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left ${
+                        filteredRecords.length === 0 || filteredRecords.length === records.length
+                          ? 'opacity-40 cursor-not-allowed'
+                          : 'hover:bg-amber-50'
+                      }`}
+                    >
+                      <FileSpreadsheet className="w-5 h-5 text-blue-600" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-amber-900">导出筛选结果</div>
+                        <div className="text-xs text-amber-600">
+                          {hasActiveFilters ? `${filteredRecords.length} 条（已筛选）` : '请先设置筛选条件'}
+                        </div>
+                      </div>
+                    </button>
+
+                    <div className="px-3 py-2 text-xs font-bold text-amber-700 uppercase tracking-wide border-y border-amber-100 my-1">
+                      导出 CSV
+                    </div>
+                    <button
+                      onClick={handleExportCsvAll}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-amber-50 transition-colors text-left"
+                    >
+                      <FileText className="w-5 h-5 text-purple-600" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-amber-900">导出全部记录</div>
+                        <div className="text-xs text-amber-600">共 {records.length} 条</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={handleExportCsvFiltered}
+                      disabled={filteredRecords.length === 0 || filteredRecords.length === records.length}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left ${
+                        filteredRecords.length === 0 || filteredRecords.length === records.length
+                          ? 'opacity-40 cursor-not-allowed'
+                          : 'hover:bg-amber-50'
+                      }`}
+                    >
+                      <FileText className="w-5 h-5 text-indigo-600" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-amber-900">导出筛选结果</div>
+                        <div className="text-xs text-amber-600">
+                          {hasActiveFilters ? `${filteredRecords.length} 条（已筛选）` : '请先设置筛选条件'}
+                        </div>
+                      </div>
+                    </button>
+
+                    <div className="px-3 py-2 text-xs font-bold text-amber-700 uppercase tracking-wide border-t border-amber-100 mt-1">
+                      工具
+                    </div>
+                    <button
+                      onClick={handleDownloadTemplate}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-amber-50 transition-colors text-left"
+                    >
+                      <Download className="w-5 h-5 text-amber-600" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-amber-900">下载导入模板</div>
+                        <div className="text-xs text-amber-600">带示例数据和填写说明</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -571,6 +715,11 @@ const ListPage = () => {
         isOpen={showBatchTagModal}
         onClose={() => setShowBatchTagModal(false)}
         selectedRecordIds={selectedRecordIds}
+      />
+
+      <ImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
       />
     </div>
   );

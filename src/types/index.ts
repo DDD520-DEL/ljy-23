@@ -254,4 +254,6 @@ export interface StoreState {
   syncToCloud: () => Promise<void>;
   syncFromCloud: () => Promise<void>;
   syncAll: () => Promise<void>;
+  batchAddRecords: (records: Array<Omit<Record, 'id' | 'userId'>>) => void;
+  batchUpdateRecords: (updates: Array<{ id: string; data: Partial<Record> }>) => void;
 }

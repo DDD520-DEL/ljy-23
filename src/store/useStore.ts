@@ -529,6 +529,34 @@ export const useStore = create<StoreState>()(
           });
         }
       },
+
+      batchAddRecords: (recordList) => {
+        const { currentUser } = get();
+        if (!currentUser) return;
+
+        const newRecords: Record[] = recordList.map((recordData) => ({
+          ...recordData,
+          id: generateId(),
+          userId: currentUser.id,
+        }));
+        set((state) => ({
+          records: [...newRecords, ...state.records],
+        }));
+      },
+
+      batchUpdateRecords: (updates) => {
+        set((state) => {
+          const updateMap = new Map(updates.map(u => [u.id, u.data]));
+          const updatedRecords = state.records.map((r) => {
+            const updateData = updateMap.get(r.id);
+            if (updateData) {
+              return { ...r, ...updateData };
+            }
+            return r;
+          });
+          return { records: updatedRecords };
+        });
+      },
     }),
     {
       name: 'bargain-hunter-storage',
