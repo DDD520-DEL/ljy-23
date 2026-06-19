@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { ScrollText, BarChart3, Map, ListTodo, ShoppingCart, Compass, LogIn, LogOut, User, Settings, CalendarDays } from 'lucide-react';
+import { ScrollText, BarChart3, Map, ListTodo, ShoppingCart, Compass, LogIn, LogOut, User, Settings, CalendarDays, BookOpen } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import SyncStatus from '../Sync/SyncStatus';
 
@@ -15,6 +15,7 @@ const Navigation = () => {
     { path: '/map', label: '捡漏地图', icon: Map },
     { path: '/list', label: '记录列表', icon: ListTodo },
     { path: '/calendar', label: '捡漏日历', icon: CalendarDays },
+    { path: '/tips-guide', label: '捡漏技巧', icon: BookOpen },
   ];
 
   const handleLogout = () => {

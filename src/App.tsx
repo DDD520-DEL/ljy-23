@@ -12,6 +12,7 @@ import ProductDetailPage from "@/pages/ProductDetailPage";
 import ShoppingListPage from "@/pages/ShoppingListPage";
 import SettingsPage from "@/pages/SettingsPage";
 import CalendarPage from "@/pages/CalendarPage";
+import TipsGuidePage from "@/pages/TipsGuidePage";
 import { useStore } from "@/store/useStore";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -89,6 +90,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ProductDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tips-guide"
+            element={
+              <ProtectedRoute>
+                <TipsGuidePage />
               </ProtectedRoute>
             }
           />
