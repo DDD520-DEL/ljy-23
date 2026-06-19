@@ -107,6 +107,27 @@ export interface ProductPriceHistory {
   history: PriceHistoryPoint[];
 }
 
+export interface SupermarketPriceCompare {
+  supermarketName: string;
+  lowestPrice: number;
+  lowestPriceDate: string;
+  lowestPriceRecordId: string;
+  latestPrice: number;
+  latestPriceDate: string;
+  latestPriceRecordId: string;
+  totalRecords: number;
+  averagePrice: number;
+}
+
+export interface ProductPriceCompare {
+  productName: string;
+  category: string;
+  supermarkets: SupermarketPriceCompare[];
+  overallLowestPrice: number;
+  overallLowestPriceSupermarket: string;
+  overallLowestPriceDate: string;
+}
+
 export interface CategoryAnalysis {
   name: string;
   count: number;
@@ -307,6 +328,8 @@ export interface StoreState {
   getRecordsByProductName: (productName: string) => Record[];
   getProductPriceHistory: (productName: string) => ProductPriceHistory | null;
   getAllProductNames: () => string[];
+  searchProductNames: (query: string) => string[];
+  getProductPriceCompare: (productName: string) => ProductPriceCompare | null;
   getSupermarketScores: () => SupermarketScore[];
   getSupermarketDetail: (name: string) => SupermarketDetail | null;
   getMonthlyBudget: () => number;

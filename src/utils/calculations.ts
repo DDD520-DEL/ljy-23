@@ -1,4 +1,4 @@
-import type { Record, StatsData, SupermarketStat, CategoryStat, MonthStat, ProductPriceHistory, PriceHistoryPoint, SupermarketScore, CategoryAnalysis, TimeSlotAnalysis, SupermarketDetail, BudgetStatus, CategorySpending, AchievementConfig } from '../types';
+import type { Record, StatsData, SupermarketStat, CategoryStat, MonthStat, ProductPriceHistory, PriceHistoryPoint, SupermarketScore, CategoryAnalysis, TimeSlotAnalysis, SupermarketDetail, BudgetStatus, CategorySpending, AchievementConfig, ProductPriceCompare, SupermarketPriceCompare } from '../types';
 import { defaultSupermarkets, getCategoryColor } from './mockData';
 
 export const calculateDiscountPrice = (originalPrice: number, discount: number): number => {
@@ -696,4 +696,118 @@ export const checkAchievementUnlocked = (
   const config = achievementConfigs.find(c => c.id === achievementId);
   if (!config) return false;
   return config.checkUnlocked(stats, records);
+};
+
+export const searchProductNames = (records: Record[], query: string): string[] => {
+  if (!query.trim()) return [];
+  
+  const lowerQuery = query.toLowerCase().trim();
+  const productSet = new Set<string>();
+  const nameMap = new Map<string, string>();
+  
+  records.forEach(record => {
+    const lowerName = record.productName.toLowerCase();
+    const displayName = record.productName;
+    
+    if (!nameMap.has(lowerName)) {
+      nameMap.set(lowerName, displayName);
+    }
+    
+    if (lowerName.includes(lowerQuery)) {
+      productSet.add(lowerName);
+    }
+  });
+  
+  return Array.from(productSet).map(key => nameMap.get(key)!);
+};
+
+export const computeProductPriceCompare = (
+  records: Record[],
+  productName: string
+): ProductPriceCompare | null => {
+  const lowerProductName = productName.toLowerCase().trim();
+  const productRecords = records.filter(
+    r => r.productName.toLowerCase() === lowerProductName
+  );
+
+  if (productRecords.length === 0) return null;
+
+  const supermarketMap = new Map<string, SupermarketPriceCompare>();
+
+  productRecords.forEach(record => {
+    const discountPrice = calculateDiscountPrice(record.originalPrice, record.discount);
+    const existing = supermarketMap.get(record.supermarketName);
+
+    if (!existing) {
+      supermarketMap.set(record.supermarketName, {
+        supermarketName: record.supermarketName,
+        lowestPrice: discountPrice,
+        lowestPriceDate: record.purchaseDate,
+        lowestPriceRecordId: record.id,
+        latestPrice: discountPrice,
+        latestPriceDate: record.purchaseDate,
+        latestPriceRecordId: record.id,
+        totalRecords: 1,
+        averagePrice: discountPrice,
+      });
+    } else {
+      let lowestPrice = existing.lowestPrice;
+      let lowestPriceDate = existing.lowestPriceDate;
+      let lowestPriceRecordId = existing.lowestPriceRecordId;
+      let latestPrice = existing.latestPrice;
+      let latestPriceDate = existing.latestPriceDate;
+      let latestPriceRecordId = existing.latestPriceRecordId;
+      const totalRecords = existing.totalRecords + 1;
+      const averagePrice = (existing.averagePrice * existing.totalRecords + discountPrice) / totalRecords;
+
+      if (discountPrice < lowestPrice) {
+        lowestPrice = discountPrice;
+        lowestPriceDate = record.purchaseDate;
+        lowestPriceRecordId = record.id;
+      }
+
+      if (new Date(record.purchaseDate) > new Date(latestPriceDate)) {
+        latestPrice = discountPrice;
+        latestPriceDate = record.purchaseDate;
+        latestPriceRecordId = record.id;
+      }
+
+      supermarketMap.set(record.supermarketName, {
+        ...existing,
+        lowestPrice: Number(lowestPrice.toFixed(2)),
+        lowestPriceDate,
+        lowestPriceRecordId,
+        latestPrice: Number(latestPrice.toFixed(2)),
+        latestPriceDate,
+        latestPriceRecordId,
+        totalRecords,
+        averagePrice: Number(averagePrice.toFixed(2)),
+      });
+    }
+  });
+
+  const supermarkets = Array.from(supermarketMap.values()).sort(
+    (a, b) => a.lowestPrice - b.lowestPrice
+  );
+
+  let overallLowestPrice = Infinity;
+  let overallLowestPriceSupermarket = '';
+  let overallLowestPriceDate = '';
+
+  supermarkets.forEach(s => {
+    if (s.lowestPrice < overallLowestPrice) {
+      overallLowestPrice = s.lowestPrice;
+      overallLowestPriceSupermarket = s.supermarketName;
+      overallLowestPriceDate = s.lowestPriceDate;
+    }
+  });
+
+  return {
+    productName: productRecords[0].productName,
+    category: productRecords[0].category,
+    supermarkets,
+    overallLowestPrice: Number(overallLowestPrice.toFixed(2)),
+    overallLowestPriceSupermarket,
+    overallLowestPriceDate,
+  };
 };

@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useMemo } from 'react';
-import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory, SupermarketScore, SupermarketDetail, BudgetStatus, MonthlyBudget, Tag, ShoppingListItem, Feedback, Achievement, Notification, DeletedRecord } from '../types';
-import { generateId, calculateTotalSavings, computeStatsFromRecords, computeProductPriceHistory, computeSupermarketScores, computeSupermarketDetail, computeBudgetStatus, achievementConfigs, checkAchievementUnlocked, getAchievementProgress } from '../utils/calculations';
+import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory, SupermarketScore, SupermarketDetail, BudgetStatus, MonthlyBudget, Tag, ShoppingListItem, Feedback, Achievement, Notification, DeletedRecord, ProductPriceCompare } from '../types';
+import { generateId, calculateTotalSavings, computeStatsFromRecords, computeProductPriceHistory, computeSupermarketScores, computeSupermarketDetail, computeBudgetStatus, achievementConfigs, checkAchievementUnlocked, getAchievementProgress, computeProductPriceCompare, searchProductNames } from '../utils/calculations';
 import { RECYCLE_BIN_RETENTION_DAYS } from '../types';
 import { defaultSupermarkets, defaultCategories } from '../utils/mockData';
 import { uploadToCloud, downloadFromCloud, mergeRecords } from '../services/cloudSync';
@@ -382,6 +382,22 @@ export const useStore = create<StoreState>()(
           }
         });
         return Array.from(productNames).map(key => nameMap.get(key)!);
+      },
+
+      searchProductNames: (query: string): string[] => {
+        const { records, currentUser } = get();
+        const userRecords = currentUser
+          ? records.filter(r => r.userId === currentUser.id)
+          : [];
+        return searchProductNames(userRecords, query);
+      },
+
+      getProductPriceCompare: (productName: string): ProductPriceCompare | null => {
+        const { records, currentUser } = get();
+        const userRecords = currentUser
+          ? records.filter(r => r.userId === currentUser.id)
+          : [];
+        return computeProductPriceCompare(userRecords, productName);
       },
 
       getSupermarketScores: (): SupermarketScore[] => {
@@ -1030,4 +1046,18 @@ export const useUserDeletedRecords = () => {
       .filter((d) => d.record.userId === currentUser.id)
       .sort((a, b) => new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime());
   }, [deletedRecords, currentUser]);
+};
+
+export const useProductPriceCompare = (productName: string): ProductPriceCompare | null => {
+  const records = useUserRecords();
+  return useMemo(() => {
+    return computeProductPriceCompare(records, productName);
+  }, [records, productName]);
+};
+
+export const useSearchProductNames = (query: string): string[] => {
+  const records = useUserRecords();
+  return useMemo(() => {
+    return searchProductNames(records, query);
+  }, [records, query]);
 };

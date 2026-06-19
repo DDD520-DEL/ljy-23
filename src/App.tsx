@@ -18,6 +18,7 @@ import FeedbackPage from "@/pages/FeedbackPage";
 import BadgesPage from "@/pages/BadgesPage";
 import NotificationsPage from "@/pages/NotificationsPage";
 import RecycleBinPage from "@/pages/RecycleBinPage";
+import PriceComparePage from "@/pages/PriceComparePage";
 import { useStore } from "@/store/useStore";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -71,6 +72,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <NearbyDealsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/price-compare"
+            element={
+              <ProtectedRoute>
+                <PriceComparePage />
               </ProtectedRoute>
             }
           />
