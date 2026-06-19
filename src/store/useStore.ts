@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory, SupermarketScore, SupermarketDetail } from '../types';
 import { generateId, calculateTotalSavings, computeStatsFromRecords, computeProductPriceHistory, computeSupermarketScores, computeSupermarketDetail } from '../utils/calculations';
 import { defaultSupermarkets, defaultCategories } from '../utils/mockData';
+import { uploadToCloud, downloadFromCloud, mergeRecords } from '../services/cloudSync';
 
 export const useStore = create<StoreState>()(
   persist(
@@ -13,6 +14,9 @@ export const useStore = create<StoreState>()(
       records: [],
       supermarkets: defaultSupermarkets,
       categories: defaultCategories,
+      syncStatus: 'idle',
+      lastSyncTime: null,
+      syncError: null,
 
       register: (username: string, password: string) => {
         const { users } = get();
@@ -71,7 +75,11 @@ export const useStore = create<StoreState>()(
       },
 
       logout: () => {
-        set({ currentUser: null });
+        set({
+          currentUser: null,
+          syncStatus: 'idle',
+          syncError: null,
+        });
       },
 
       addRecord: (recordData) => {
@@ -198,6 +206,109 @@ export const useStore = create<StoreState>()(
 
       loadFromStorage: () => {
       },
+
+      syncToCloud: async () => {
+        const { currentUser, records } = get();
+        if (!currentUser) return;
+
+        set({ syncStatus: 'syncing', syncError: null });
+
+        try {
+          const userRecords = records.filter(r => r.userId === currentUser.id);
+          const result = await uploadToCloud(currentUser.id, userRecords);
+          set({
+            syncStatus: 'success',
+            lastSyncTime: result.lastSyncTime,
+          });
+          setTimeout(() => {
+            if (get().syncStatus === 'success') {
+              set({ syncStatus: 'idle' });
+            }
+          }, 3000);
+        } catch (error) {
+          set({
+            syncStatus: 'error',
+            syncError: error instanceof Error ? error.message : '同步失败',
+          });
+        }
+      },
+
+      syncFromCloud: async () => {
+        const { currentUser, records } = get();
+        if (!currentUser) return;
+
+        set({ syncStatus: 'syncing', syncError: null });
+
+        try {
+          const cloudData = await downloadFromCloud(currentUser.id);
+          if (cloudData) {
+            const userRecords = records.filter(r => r.userId === currentUser.id);
+            const otherRecords = records.filter(r => r.userId !== currentUser.id);
+            const merged = mergeRecords(userRecords, cloudData.records);
+            set({
+              records: [...merged, ...otherRecords],
+              syncStatus: 'success',
+              lastSyncTime: cloudData.lastSyncTime || new Date().toISOString(),
+            });
+          } else {
+            set({ syncStatus: 'success' });
+          }
+          setTimeout(() => {
+            if (get().syncStatus === 'success') {
+              set({ syncStatus: 'idle' });
+            }
+          }, 3000);
+        } catch (error) {
+          set({
+            syncStatus: 'error',
+            syncError: error instanceof Error ? error.message : '同步失败',
+          });
+        }
+      },
+
+      syncAll: async () => {
+        const { currentUser, records } = get();
+        if (!currentUser) return;
+
+        set({ syncStatus: 'syncing', syncError: null });
+
+        try {
+          const cloudData = await downloadFromCloud(currentUser.id);
+          const userRecords = records.filter(r => r.userId === currentUser.id);
+          const otherRecords = records.filter(r => r.userId !== currentUser.id);
+
+          let mergedRecords = userRecords;
+          let cloudSyncTime: string | null = null;
+
+          if (cloudData) {
+            mergedRecords = mergeRecords(userRecords, cloudData.records);
+            cloudSyncTime = cloudData.lastSyncTime;
+          }
+
+          set({
+            records: [...mergedRecords, ...otherRecords],
+          });
+
+          const finalUserRecords = [...mergedRecords];
+          const uploadResult = await uploadToCloud(currentUser.id, finalUserRecords);
+
+          set({
+            syncStatus: 'success',
+            lastSyncTime: uploadResult.lastSyncTime || cloudSyncTime,
+          });
+
+          setTimeout(() => {
+            if (get().syncStatus === 'success') {
+              set({ syncStatus: 'idle' });
+            }
+          }, 3000);
+        } catch (error) {
+          set({
+            syncStatus: 'error',
+            syncError: error instanceof Error ? error.message : '同步失败',
+          });
+        }
+      },
     }),
     {
       name: 'bargain-hunter-storage',
@@ -205,6 +316,7 @@ export const useStore = create<StoreState>()(
         users: state.users,
         currentUser: state.currentUser,
         records: state.records,
+        lastSyncTime: state.lastSyncTime,
       }),
     }
   )

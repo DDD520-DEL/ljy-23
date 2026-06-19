@@ -136,12 +136,29 @@ export interface SupermarketDetail {
   recentRecords: Record[];
 }
 
+export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
+
+export interface UserCloudData {
+  records: Record[];
+  lastSyncTime: string | null;
+  updatedAt: string;
+}
+
+export interface CloudSyncState {
+  syncStatus: SyncStatus;
+  lastSyncTime: string | null;
+  syncError: string | null;
+}
+
 export interface StoreState {
   users: User[];
   currentUser: User | null;
   records: Record[];
   supermarkets: Supermarket[];
   categories: Category[];
+  syncStatus: SyncStatus;
+  lastSyncTime: string | null;
+  syncError: string | null;
   register: (username: string, password: string) => { success: boolean; message: string };
   login: (username: string, password: string) => { success: boolean; message: string };
   logout: () => void;
@@ -159,6 +176,9 @@ export interface StoreState {
   getSupermarketScores: () => SupermarketScore[];
   getSupermarketDetail: (name: string) => SupermarketDetail | null;
   loadFromStorage: () => void;
+  syncToCloud: () => Promise<void>;
+  syncFromCloud: () => Promise<void>;
+  syncAll: () => Promise<void>;
 }
 
 export interface FormData {

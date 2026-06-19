@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { User, Lock, LogIn, UserPlus, Compass, AlertCircle, CheckCircle } from 'lucide-react';
@@ -15,8 +15,15 @@ const AuthPage = () => {
   const currentUser = useStore((state) => state.currentUser);
   const login = useStore((state) => state.login);
   const register = useStore((state) => state.register);
+  const syncAll = useStore((state) => state.syncAll);
   const navigate = useNavigate();
   const location = useLocation();
+
+  const triggerSync = useCallback(() => {
+    setTimeout(() => {
+      syncAll();
+    }, 300);
+  }, [syncAll]);
 
   useEffect(() => {
     if (currentUser) {
@@ -37,6 +44,7 @@ const AuthPage = () => {
       const result = register(username, password);
       setMessage({ type: result.success ? 'success' : 'error', text: result.message });
       if (result.success) {
+        triggerSync();
         setTimeout(() => {
           navigate('/', { replace: true });
         }, 1000);
@@ -45,6 +53,7 @@ const AuthPage = () => {
       const result = login(username, password);
       setMessage({ type: result.success ? 'success' : 'error', text: result.message });
       if (result.success) {
+        triggerSync();
         const from = (location.state as { from?: string })?.from || '/';
         setTimeout(() => {
           navigate(from, { replace: true });

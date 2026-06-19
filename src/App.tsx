@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { useEffect, useRef } from "react";
 import Layout from "@/components/Layout/Layout";
 import ProtectedRoute from "@/components/Auth/ProtectedRoute";
 import RecordPage from "@/pages/RecordPage";
@@ -16,6 +17,22 @@ const HomePage = () => {
 };
 
 export default function App() {
+  const currentUser = useStore((state) => state.currentUser);
+  const syncAll = useStore((state) => state.syncAll);
+  const hasSynced = useRef(false);
+
+  useEffect(() => {
+    if (currentUser && !hasSynced.current) {
+      hasSynced.current = true;
+      setTimeout(() => {
+        syncAll();
+      }, 500);
+    }
+    if (!currentUser) {
+      hasSynced.current = false;
+    }
+  }, [currentUser, syncAll]);
+
   return (
     <Router>
       <Layout>

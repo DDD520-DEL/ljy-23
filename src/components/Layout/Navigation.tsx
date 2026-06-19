@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { ScrollText, BarChart3, Map, ListTodo, Compass, LogIn, LogOut, User } from 'lucide-react';
 import { useStore } from '../../store/useStore';
+import SyncStatus from '../Sync/SyncStatus';
 
 const Navigation = () => {
   const currentUser = useStore((state) => state.currentUser);
@@ -57,6 +58,7 @@ const Navigation = () => {
           <div className="flex items-center gap-3">
             {currentUser ? (
               <>
+                <SyncStatus />
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-amber-50 rounded-lg border-2 border-amber-300">
                   <div className="w-8 h-8 bg-amber-600 rounded-full flex items-center justify-center">
                     <User className="w-4 h-4 text-parchment-100" />
