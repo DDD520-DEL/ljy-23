@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Settings, Sun, Moon, Trash2, Info, Shield, AlertTriangle, Check } from 'lucide-react';
+import { Settings, Sun, Moon, Trash2, Info, Shield, AlertTriangle, Check, MessageSquare } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { useStore } from '../../store/useStore';
+import { useNavigate } from 'react-router-dom';
 
 const SettingsPage = () => {
   const { theme, toggleTheme } = useTheme();
   const clearAllData = useStore((state) => state.clearAllData);
+  const navigate = useNavigate();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [clearSuccess, setClearSuccess] = useState(false);
@@ -124,6 +126,24 @@ const SettingsPage = () => {
             <span className="text-amber-500">→</span>
           </button>
         </div>
+      </div>
+
+      <div className="card-paper p-6 relative">
+        <div className="tape" style={{ top: '-8px', right: '25%', transform: 'rotate(2deg)' }} />
+        <h3 className="font-display text-xl text-amber-900 mb-4 flex items-center gap-2">
+          <MessageSquare className="w-5 h-5 text-amber-600" />
+          帮助与反馈
+        </h3>
+        <button
+          onClick={() => navigate('/feedback')}
+          className="w-full btn-stamp btn-secondary flex items-center justify-center gap-2 !py-4 !text-lg"
+        >
+          <MessageSquare className="w-5 h-5" />
+          意见反馈
+        </button>
+        <p className="text-sm text-amber-500 mt-3 text-center font-body">
+          遇到问题或有好建议？告诉我们吧
+        </p>
       </div>
 
       {showClearConfirm && (

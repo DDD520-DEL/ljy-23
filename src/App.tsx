@@ -14,6 +14,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import CalendarPage from "@/pages/CalendarPage";
 import TipsGuidePage from "@/pages/TipsGuidePage";
 import NearbyDealsPage from "@/pages/NearbyDealsPage";
+import FeedbackPage from "@/pages/FeedbackPage";
 import { useStore } from "@/store/useStore";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -111,6 +112,7 @@ export default function App() {
             }
           />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/feedback" element={<FeedbackPage />} />
         </Routes>
       </Layout>
     </Router>
