@@ -5,7 +5,8 @@ import { MapPin, ShoppingBag, Coins, Percent, X, Compass, Target } from 'lucide-
 import { formatCurrency, formatDiscount } from '../../utils/calculations';
 
 const MapPage = () => {
-  const { supermarkets, deleteRecord } = useStore();
+  const supermarkets = useStore((state) => state.supermarkets);
+  const deleteRecord = useStore((state) => state.deleteRecord);
   const records = useUserRecords();
   const stats = useUserStats();
   const [selectedSupermarket, setSelectedSupermarket] = useState<string | null>(null);

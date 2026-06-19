@@ -5,7 +5,7 @@ import { Sparkles } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 
 const RecordPage = () => {
-  const { deleteRecord } = useStore();
+  const deleteRecord = useStore((state) => state.deleteRecord);
   const records = useUserRecords();
   const stats = useUserStats();
   const recentRecords = records.slice(0, 3);

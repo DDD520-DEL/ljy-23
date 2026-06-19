@@ -1,11 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { useStore } from '../../store/useStore';
+import { usePublicStats } from '../../store/useStore';
 import { Compass, ScrollText, Coins, Users, LogIn, UserPlus, Sparkles, Trophy } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const PublicDashboard = () => {
-  const { getPublicStats } = useStore();
-  const stats = getPublicStats();
+  const stats = usePublicStats();
   const navigate = useNavigate();
 
   const [displayRecords, setDisplayRecords] = useState(0);

@@ -3,7 +3,8 @@ import { ScrollText, BarChart3, Map, ListTodo, Compass, LogIn, LogOut, User } fr
 import { useStore } from '../../store/useStore';
 
 const Navigation = () => {
-  const { currentUser, logout } = useStore();
+  const currentUser = useStore((state) => state.currentUser);
+  const logout = useStore((state) => state.logout);
   const navigate = useNavigate();
 
   const navItems = [

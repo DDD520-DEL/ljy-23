@@ -7,7 +7,9 @@ import { formatDate } from '../../utils/calculations';
 type SortOption = 'date-desc' | 'date-asc' | 'price-desc' | 'price-asc' | 'discount-asc' | 'discount-desc';
 
 const ListPage = () => {
-  const { supermarkets, categories, deleteRecord } = useStore();
+  const supermarkets = useStore((state) => state.supermarkets);
+  const categories = useStore((state) => state.categories);
+  const deleteRecord = useStore((state) => state.deleteRecord);
   const records = useUserRecords();
   
   const [searchTerm, setSearchTerm] = useState('');

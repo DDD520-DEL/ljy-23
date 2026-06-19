@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { currentUser } = useStore();
+  const currentUser = useStore((state) => state.currentUser);
   const location = useLocation();
 
   if (!currentUser) {

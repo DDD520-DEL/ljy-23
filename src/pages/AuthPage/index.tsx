@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { User, Lock, LogIn, UserPlus, Compass, AlertCircle, CheckCircle } from 'lucide-react';
 
@@ -12,13 +12,18 @@ const AuthPage = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const { login, register, currentUser } = useStore();
+  const currentUser = useStore((state) => state.currentUser);
+  const login = useStore((state) => state.login);
+  const register = useStore((state) => state.register);
   const navigate = useNavigate();
   const location = useLocation();
 
-  if (currentUser) {
-    navigate('/', { replace: true });
-  }
+  useEffect(() => {
+    if (currentUser) {
+      const from = (location.state as { from?: string })?.from || '/';
+      navigate(from, { replace: true });
+    }
+  }, [currentUser, location.state, navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +60,11 @@ const AuthPage = () => {
     setPassword('');
     setConfirmPassword('');
   };
+
+  if (currentUser) {
+    const from = (location.state as { from?: string })?.from || '/';
+    return <Navigate to={from} replace />;
+  }
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center py-12">

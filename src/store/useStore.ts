@@ -151,13 +151,28 @@ export const useStore = create<StoreState>()(
 );
 
 export const useUserRecords = () => {
-  return useStore((state) => {
-    if (!state.currentUser) return [];
-    return state.records.filter(r => r.userId === state.currentUser!.id);
-  });
+  const records = useStore((state) => state.records);
+  const currentUser = useStore((state) => state.currentUser);
+  return useMemo(() => {
+    if (!currentUser) return [];
+    return records.filter(r => r.userId === currentUser.id);
+  }, [records, currentUser]);
 };
 
 export const useUserStats = (): StatsData => {
   const records = useUserRecords();
   return useMemo(() => computeStatsFromRecords(records), [records]);
+};
+
+export const usePublicStats = (): PublicStats => {
+  const records = useStore((state) => state.records);
+  const users = useStore((state) => state.users);
+  return useMemo(() => {
+    const totalSavings = calculateTotalSavings(records);
+    return {
+      totalRecords: records.length,
+      totalSavings: Number(totalSavings.toFixed(2)),
+      totalUsers: users.length,
+    };
+  }, [records, users]);
 };

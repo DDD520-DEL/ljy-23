@@ -10,7 +10,7 @@ import PublicDashboard from "@/pages/PublicDashboard";
 import { useStore } from "@/store/useStore";
 
 const HomePage = () => {
-  const { currentUser } = useStore();
+  const currentUser = useStore((state) => state.currentUser);
   return currentUser ? <RecordPage /> : <PublicDashboard />;
 };
 

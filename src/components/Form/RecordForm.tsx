@@ -6,7 +6,9 @@ import { getSupermarketCoords } from '../../utils/mockData';
 import type { FormData } from '../../types';
 
 const RecordForm = () => {
-  const { supermarkets, categories, addRecord } = useStore();
+  const supermarkets = useStore((state) => state.supermarkets);
+  const categories = useStore((state) => state.categories);
+  const addRecord = useStore((state) => state.addRecord);
   const [showSuccess, setShowSuccess] = useState(false);
   
   const today = new Date().toISOString().split('T')[0];
