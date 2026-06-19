@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useStore, useUserRecords, useUserStats } from '../../store/useStore';
 import RecordCard from '../../components/Card/RecordCard';
 import { MapPin, ShoppingBag, Coins, Percent, X, Compass, Target } from 'lucide-react';
@@ -9,8 +10,22 @@ const MapPage = () => {
   const deleteRecord = useStore((state) => state.deleteRecord);
   const records = useUserRecords();
   const stats = useUserStats();
+  const [searchParams] = useSearchParams();
   const [selectedSupermarket, setSelectedSupermarket] = useState<string | null>(null);
   const [hoveredSupermarket, setHoveredSupermarket] = useState<string | null>(null);
+  const [highlightedSupermarket, setHighlightedSupermarket] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supermarketParam = searchParams.get('supermarket');
+    if (supermarketParam) {
+      setSelectedSupermarket(supermarketParam);
+      setHighlightedSupermarket(supermarketParam);
+      const timer = setTimeout(() => {
+        setHighlightedSupermarket(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
 
   const supermarketStats = useMemo(() => {
     const map = new Map<string, { count: number; totalSavings: number; avgDiscount: number; records: typeof records }>();
@@ -132,12 +147,15 @@ const MapPage = () => {
               const color = getMarkerColor(data.count);
               const isSelected = selectedSupermarket === supermarket.name;
               const isHovered = hoveredSupermarket === supermarket.name;
+              const isHighlighted = highlightedSupermarket === supermarket.name;
 
               return (
                 <div key={supermarket.name}>
-                  {(isSelected || isHovered) && data.count >= 3 && (
+                  {(isSelected || isHovered || isHighlighted) && (
                     <div 
-                      className="absolute pulse-ring rounded-full border-2 border-crimson-700"
+                      className={`absolute rounded-full border-2 ${
+                        isHighlighted ? 'border-amber-500 animate-ping' : 'border-crimson-700'
+                      } ${data.count >= 3 || isHighlighted ? '' : 'opacity-50'}`}
                       style={{
                         left: `${supermarket.x}%`,
                         top: `${supermarket.y}%`,
@@ -148,14 +166,27 @@ const MapPage = () => {
                     />
                   )}
 
+                  {isHighlighted && (
+                    <div 
+                      className="absolute rounded-full border-4 border-amber-400 animate-pulse"
+                      style={{
+                        left: `${supermarket.x}%`,
+                        top: `${supermarket.y}%`,
+                        width: `${size + 40}px`,
+                        height: `${size + 40}px`,
+                        transform: 'translate(-50%, -50%)',
+                      }}
+                    />
+                  )}
+
                   <div
                     className={`absolute cursor-pointer transition-all duration-300 ${
-                      isSelected ? 'z-20' : 'z-10'
+                      isSelected || isHighlighted ? 'z-30' : 'z-10'
                     }`}
                     style={{
                       left: `${supermarket.x}%`,
                       top: `${supermarket.y}%`,
-                      transform: `translate(-50%, -50%) ${isHovered || isSelected ? 'scale(1.2)' : 'scale(1)'}`,
+                      transform: `translate(-50%, -50%) ${isHovered || isSelected || isHighlighted ? 'scale(1.3)' : 'scale(1)'}`,
                     }}
                     onClick={() => setSelectedSupermarket(
                       selectedSupermarket === supermarket.name ? null : supermarket.name
@@ -165,8 +196,8 @@ const MapPage = () => {
                   >
                     <div 
                       className={`rounded-full flex items-center justify-center shadow-lg border-3 border-parchment-100 ${
-                        isSelected ? 'ring-4 ring-amber-400' : ''
-                      }`}
+                        isSelected || isHighlighted ? 'ring-4 ring-amber-400' : ''
+                      } ${isHighlighted ? 'animate-bounce' : ''}`}
                       style={{
                         width: `${size}px`,
                         height: `${size}px`,
@@ -182,7 +213,7 @@ const MapPage = () => {
                     <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 whitespace-nowrap">
                       <span 
                         className={`font-display text-sm px-2 py-1 rounded border transition-all ${
-                          isHovered || isSelected 
+                          isHovered || isSelected || isHighlighted
                             ? 'opacity-100 bg-parchment-100 border-amber-700 text-amber-900' 
                             : 'opacity-0 bg-transparent border-transparent'
                         }`}
