@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, TrendingUp, Store, Tag, MapPin, Target, Sparkles } from 'lucide-react';
+import { ShoppingBag, TrendingUp, Store, Tag, MapPin, Target } from 'lucide-react';
 import type { Record } from '../../types';
 import { calculateSavings } from '../../utils/calculations';
 import { getCategoryColor, defaultCategories } from '../../utils/mockData';
@@ -147,7 +147,12 @@ const DashboardCardGrid = ({ records }: DashboardCardGridProps) => {
       { count: number; totalSavings: number; totalDiscount: number }
     >();
 
-    const recentRecords = records.slice(0, 30);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const recentRecords = records.filter((r) => {
+      const recordDate = new Date(r.purchaseDate);
+      return recordDate >= thirtyDaysAgo;
+    });
 
     recentRecords.forEach((r) => {
       if (!categoryMap.has(r.category)) {
@@ -208,19 +213,6 @@ const DashboardCardGrid = ({ records }: DashboardCardGridProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="text-center mb-2">
-        <div className="inline-flex items-center gap-2 mb-2">
-          <Sparkles className="w-6 h-6 text-amber-600" />
-          <h2 className="title-display text-3xl md:text-4xl text-amber-900">
-            猎人看板
-          </h2>
-          <Sparkles className="w-6 h-6 text-amber-600" />
-        </div>
-        <p className="text-amber-700 font-body text-lg">
-          一览今日捡漏战绩与省钱趋势
-        </p>
-      </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <div className="card-paper p-5 relative bg-gradient-to-br from-amber-50 to-parchment-100">
           <div
