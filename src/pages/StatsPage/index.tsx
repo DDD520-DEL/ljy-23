@@ -8,6 +8,7 @@ import TrendChart from '../../components/Chart/TrendChart';
 import SupermarketScoreRanking from '../../components/Chart/SupermarketScoreRanking';
 import SupermarketDetailModal from '../../components/Chart/SupermarketDetailModal';
 import ShareReportModal, { ShareReportInitialState } from '../../components/Report/ShareReportModal';
+import BudgetOverviewCard from '../../components/Budget/BudgetOverviewCard';
 import { ScrollText, Coins, Percent, Calendar, Trophy, Share2 } from 'lucide-react';
 
 const StatsPage = () => {
@@ -83,6 +84,10 @@ const StatsPage = () => {
           <Share2 className="w-5 h-5" />
           生成捡漏战报
         </button>
+      </div>
+
+      <div className="mb-8">
+        <BudgetOverviewCard />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

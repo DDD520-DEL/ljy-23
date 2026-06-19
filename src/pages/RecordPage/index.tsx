@@ -1,6 +1,7 @@
 import { useStore, useUserRecords, useUserStats } from '../../store/useStore';
 import RecordForm from '../../components/Form/RecordForm';
 import RecordCard from '../../components/Card/RecordCard';
+import BudgetOverviewCard from '../../components/Budget/BudgetOverviewCard';
 import { Sparkles } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 
@@ -101,6 +102,8 @@ const RecordPage = () => {
         </div>
 
         <div className="lg:col-span-2 space-y-6">
+          <BudgetOverviewCard />
+
           <div className="card-paper p-6 relative">
             <div className="tape" style={{ top: '-8px', right: '30px', transform: 'rotate(5deg)' }} />
             <h3 className="font-display text-xl text-amber-900 mb-4 flex items-center gap-2">

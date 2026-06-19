@@ -1,15 +1,20 @@
 import { useState, useMemo } from 'react';
-import { Store, MapPin, Tag, Coins, Percent, Calendar, Clock, FileText, Save, RotateCcw } from 'lucide-react';
-import { useStore } from '../../store/useStore';
-import { calculateDiscountPrice, calculateSavings, calculateDaysUntilExpiry, formatCurrency, formatDiscount } from '../../utils/calculations';
+import { Store, MapPin, Tag, Coins, Percent, Calendar, Clock, FileText, Save, RotateCcw, Wallet, AlertTriangle } from 'lucide-react';
+import { useStore, useUserRecords } from '../../store/useStore';
+import { calculateDiscountPrice, calculateSavings, calculateDaysUntilExpiry, formatCurrency, formatDiscount, computeBudgetStatusWithNewRecord } from '../../utils/calculations';
 import { getSupermarketCoords } from '../../utils/mockData';
-import type { FormData } from '../../types';
+import type { FormData, BudgetStatus } from '../../types';
+import BudgetAlertModal from '../Budget/BudgetAlertModal';
 
 const RecordForm = () => {
   const supermarkets = useStore((state) => state.supermarkets);
   const categories = useStore((state) => state.categories);
   const addRecord = useStore((state) => state.addRecord);
+  const getMonthlyBudget = useStore((state) => state.getMonthlyBudget);
+  const userRecords = useUserRecords();
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showBudgetAlert, setShowBudgetAlert] = useState(false);
+  const [pendingBudgetStatus, setPendingBudgetStatus] = useState<BudgetStatus | null>(null);
   
   const today = new Date().toISOString().split('T')[0];
   const now = new Date();
@@ -27,6 +32,26 @@ const RecordForm = () => {
     purchaseTime: currentTime,
     notes: '',
   });
+
+  const budgetLimit = getMonthlyBudget();
+
+  const liveBudgetStatus = useMemo((): BudgetStatus | null => {
+    if (budgetLimit <= 0) return null;
+
+    const originalPrice = parseFloat(formData.originalPrice) || 0;
+    const discount = parseFloat(formData.discount) || 0;
+    const purchaseDate = formData.purchaseDate || today;
+    const category = formData.category || '';
+
+    return computeBudgetStatusWithNewRecord(
+      userRecords,
+      budgetLimit,
+      originalPrice,
+      discount,
+      purchaseDate,
+      category
+    );
+  }, [userRecords, budgetLimit, formData.originalPrice, formData.discount, formData.purchaseDate, formData.category, today]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -50,9 +75,7 @@ const RecordForm = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const doSubmit = () => {
     const coords = getSupermarketCoords(formData.supermarketName) || { 
       x: 20 + Math.random() * 60, 
       y: 20 + Math.random() * 60 
@@ -80,6 +103,25 @@ const RecordForm = () => {
     setTimeout(() => {
       setShowSuccess(false);
     }, 3000);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (liveBudgetStatus && liveBudgetStatus.isOverBudget) {
+      setPendingBudgetStatus(liveBudgetStatus);
+      setShowBudgetAlert(true);
+    } else {
+      doSubmit();
+    }
+  };
+
+  const handleBudgetAlertClose = () => {
+    setShowBudgetAlert(false);
+    if (pendingBudgetStatus && pendingBudgetStatus.isOverBudget) {
+      doSubmit();
+    }
+    setPendingBudgetStatus(null);
   };
 
   const calculations = useMemo(() => {
@@ -308,6 +350,78 @@ const RecordForm = () => {
             />
           </div>
 
+          {liveBudgetStatus && budgetLimit > 0 && (
+            <div className={`rounded-xl p-4 border-2 ${
+              liveBudgetStatus.isOverBudget
+                ? 'bg-crimson-50 border-crimson-400'
+                : liveBudgetStatus.percentage >= 80
+                ? 'bg-amber-50 border-amber-400'
+                : 'bg-emerald-50 border-emerald-400'
+            }`}>
+              <h3 className={`font-display text-lg mb-3 text-center flex items-center justify-center gap-2 ${
+                liveBudgetStatus.isOverBudget
+                  ? 'text-crimson-800'
+                  : liveBudgetStatus.percentage >= 80
+                  ? 'text-amber-900'
+                  : 'text-emerald-800'
+              }`}>
+                <Wallet className="w-5 h-5" />
+                📊 本月预算实时监控
+              </h3>
+              
+              <div className="mb-3">
+                <div className="flex justify-between mb-1 text-sm">
+                  <span className={
+                    liveBudgetStatus.isOverBudget ? 'text-crimson-700' : 'text-amber-700'
+                  }>
+                    已使用 {liveBudgetStatus.percentage}%
+                  </span>
+                  <span className="font-mono font-bold">
+                    {formatCurrency(liveBudgetStatus.spent)} / {formatCurrency(liveBudgetStatus.limit)}
+                  </span>
+                </div>
+                <div className="w-full bg-parchment-200 rounded-full h-3 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      liveBudgetStatus.isOverBudget
+                        ? 'bg-gradient-to-r from-crimson-500 to-crimson-600'
+                        : liveBudgetStatus.percentage >= 80
+                        ? 'bg-gradient-to-r from-amber-500 to-amber-600'
+                        : 'bg-gradient-to-r from-emerald-500 to-emerald-600'
+                    }`}
+                    style={{ width: `${Math.min(liveBudgetStatus.percentage, 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-center">
+                <div className="bg-parchment-50 rounded-lg p-2 border border-parchment-300">
+                  <p className="text-xs text-amber-600 mb-1">剩余额度</p>
+                  <p className={`font-mono text-lg font-bold ${
+                    liveBudgetStatus.isOverBudget ? 'text-crimson-700' : 'text-emerald-700'
+                  }`}>
+                    {liveBudgetStatus.isOverBudget
+                      ? `-${formatCurrency(liveBudgetStatus.overAmount)}`
+                      : formatCurrency(liveBudgetStatus.remaining)}
+                  </p>
+                </div>
+                <div className="bg-parchment-50 rounded-lg p-2 border border-parchment-300">
+                  <p className="text-xs text-amber-600 mb-1">本次消费</p>
+                  <p className="font-mono text-lg font-bold text-amber-800">
+                    {formatCurrency(calculations.discountPrice)}
+                  </p>
+                </div>
+              </div>
+
+              {liveBudgetStatus.isOverBudget && (
+                <div className="mt-3 flex items-center gap-2 text-crimson-700 text-sm bg-crimson-100 rounded-lg p-2">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  <span>保存后将超出预算 {formatCurrency(liveBudgetStatus.overAmount)}，仍可继续记录</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {(parseFloat(formData.originalPrice) > 0 || calculations.daysUntilExpiry !== null) && (
             <div className="bg-amber-50 border-2 border-amber-400 rounded-xl p-4">
               <h3 className="font-display text-lg text-amber-900 mb-3 text-center">
@@ -372,6 +486,12 @@ const RecordForm = () => {
           </div>
         </form>
       </div>
+
+      <BudgetAlertModal
+        isOpen={showBudgetAlert}
+        onClose={handleBudgetAlertClose}
+        budgetStatus={pendingBudgetStatus}
+      />
     </div>
   );
 };

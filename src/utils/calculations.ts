@@ -1,4 +1,4 @@
-import type { Record, StatsData, SupermarketStat, CategoryStat, MonthStat, ProductPriceHistory, PriceHistoryPoint, SupermarketScore, CategoryAnalysis, TimeSlotAnalysis, SupermarketDetail } from '../types';
+import type { Record, StatsData, SupermarketStat, CategoryStat, MonthStat, ProductPriceHistory, PriceHistoryPoint, SupermarketScore, CategoryAnalysis, TimeSlotAnalysis, SupermarketDetail, BudgetStatus, CategorySpending } from '../types';
 import { defaultSupermarkets, getCategoryColor } from './mockData';
 
 export const calculateDiscountPrice = (originalPrice: number, discount: number): number => {
@@ -446,5 +446,114 @@ export const computeSupermarketDetail = (allRecords: Record[], supermarketName: 
     topCategories,
     topTimeSlots,
     recentRecords,
+  };
+};
+
+export const getCurrentMonthKey = (): string => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+};
+
+export const calculateSpentAmount = (records: Record[]): number => {
+  return Number(
+    records.reduce((total, record) => {
+      return total + calculateDiscountPrice(record.originalPrice, record.discount);
+    }, 0).toFixed(2)
+  );
+};
+
+export const calculateCategorySpending = (records: Record[]): CategorySpending[] => {
+  const categoryMap = new Map<string, { totalSpent: number; count: number }>();
+
+  records.forEach((record) => {
+    const spent = calculateDiscountPrice(record.originalPrice, record.discount);
+    if (!categoryMap.has(record.category)) {
+      categoryMap.set(record.category, { totalSpent: 0, count: 0 });
+    }
+    const data = categoryMap.get(record.category)!;
+    data.totalSpent += spent;
+    data.count++;
+  });
+
+  const result: CategorySpending[] = Array.from(categoryMap.entries())
+    .map(([name, data]) => ({
+      name,
+      color: getCategoryColor(name),
+      totalSpent: Number(data.totalSpent.toFixed(2)),
+      count: data.count,
+    }))
+    .sort((a, b) => b.totalSpent - a.totalSpent);
+
+  return result;
+};
+
+export const computeBudgetStatus = (records: Record[], budgetLimit: number): BudgetStatus => {
+  const currentMonthKey = getCurrentMonthKey();
+  const monthlyRecords = filterRecordsByMonth(records, currentMonthKey);
+  const spent = calculateSpentAmount(monthlyRecords);
+  const remaining = Number((budgetLimit - spent).toFixed(2));
+  const percentage = budgetLimit > 0 ? Math.min(100, (spent / budgetLimit) * 100) : 0;
+  const isOverBudget = spent > budgetLimit;
+  const overAmount = isOverBudget ? Number((spent - budgetLimit).toFixed(2)) : 0;
+  const byCategory = calculateCategorySpending(monthlyRecords);
+
+  return {
+    limit: budgetLimit,
+    spent,
+    remaining,
+    percentage: Number(percentage.toFixed(1)),
+    isOverBudget,
+    overAmount,
+    byCategory,
+  };
+};
+
+export const computeBudgetStatusWithNewRecord = (
+  records: Record[],
+  budgetLimit: number,
+  newRecordOriginalPrice: number,
+  newRecordDiscount: number,
+  newRecordPurchaseDate: string,
+  newRecordCategory: string
+): BudgetStatus => {
+  const currentMonthKey = getCurrentMonthKey();
+  const newRecordMonthKey = getMonthKey(newRecordPurchaseDate);
+  
+  let monthlyRecords = filterRecordsByMonth(records, currentMonthKey);
+  
+  if (newRecordMonthKey === currentMonthKey && newRecordOriginalPrice > 0 && newRecordDiscount > 0) {
+    const tempRecord: Record = {
+      id: 'temp',
+      userId: 'temp',
+      supermarketName: '',
+      shelfLocation: '',
+      productName: '',
+      category: newRecordCategory,
+      originalPrice: newRecordOriginalPrice,
+      discount: newRecordDiscount,
+      expiryDate: '',
+      purchaseDate: newRecordPurchaseDate,
+      notes: '',
+      x: 0,
+      y: 0,
+    };
+    monthlyRecords = [...monthlyRecords, tempRecord];
+  }
+
+  const spent = calculateSpentAmount(monthlyRecords);
+  const remaining = Number((budgetLimit - spent).toFixed(2));
+  const percentage = budgetLimit > 0 ? Math.min(100, (spent / budgetLimit) * 100) : 0;
+  const isOverBudget = spent > budgetLimit;
+  const overAmount = isOverBudget ? Number((spent - budgetLimit).toFixed(2)) : 0;
+  const byCategory = calculateCategorySpending(monthlyRecords);
+
+  return {
+    limit: budgetLimit,
+    spent,
+    remaining,
+    percentage: Number(percentage.toFixed(1)),
+    isOverBudget,
+    overAmount,
+    byCategory,
   };
 };

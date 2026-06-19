@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useMemo } from 'react';
-import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory, SupermarketScore, SupermarketDetail } from '../types';
-import { generateId, calculateTotalSavings, computeStatsFromRecords, computeProductPriceHistory, computeSupermarketScores, computeSupermarketDetail } from '../utils/calculations';
+import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory, SupermarketScore, SupermarketDetail, BudgetStatus, MonthlyBudget } from '../types';
+import { generateId, calculateTotalSavings, computeStatsFromRecords, computeProductPriceHistory, computeSupermarketScores, computeSupermarketDetail, computeBudgetStatus } from '../utils/calculations';
 import { defaultSupermarkets, defaultCategories } from '../utils/mockData';
 import { uploadToCloud, downloadFromCloud, mergeRecords } from '../services/cloudSync';
 
@@ -17,6 +17,7 @@ export const useStore = create<StoreState>()(
       syncPhase: 'idle',
       lastSyncTime: null,
       syncError: null,
+      monthlyBudgets: [],
 
       register: (username: string, password: string) => {
         const { users } = get();
@@ -204,6 +205,38 @@ export const useStore = create<StoreState>()(
         return computeSupermarketDetail(userRecords, name);
       },
 
+      getMonthlyBudget: (): number => {
+        const { monthlyBudgets, currentUser } = get();
+        if (!currentUser) return 0;
+        const budget = monthlyBudgets.find(b => b.userId === currentUser.id);
+        return budget ? budget.limit : 0;
+      },
+
+      setMonthlyBudget: (limit: number) => {
+        const { monthlyBudgets, currentUser } = get();
+        if (!currentUser) return;
+
+        const existingIndex = monthlyBudgets.findIndex(b => b.userId === currentUser.id);
+        const newBudget: MonthlyBudget = { userId: currentUser.id, limit };
+
+        if (existingIndex >= 0) {
+          const newBudgets = [...monthlyBudgets];
+          newBudgets[existingIndex] = newBudget;
+          set({ monthlyBudgets: newBudgets });
+        } else {
+          set({ monthlyBudgets: [...monthlyBudgets, newBudget] });
+        }
+      },
+
+      getBudgetStatus: (): BudgetStatus => {
+        const { records, currentUser, getMonthlyBudget } = get();
+        const userRecords = currentUser
+          ? records.filter(r => r.userId === currentUser.id)
+          : [];
+        const limit = getMonthlyBudget();
+        return computeBudgetStatus(userRecords, limit);
+      },
+
       loadFromStorage: () => {
       },
 
@@ -326,6 +359,7 @@ export const useStore = create<StoreState>()(
         currentUser: state.currentUser,
         records: state.records,
         lastSyncTime: state.lastSyncTime,
+        monthlyBudgets: state.monthlyBudgets,
       }),
     }
   )
@@ -373,4 +407,11 @@ export const useSupermarketScores = (): SupermarketScore[] => {
 export const useSupermarketDetail = (name: string): SupermarketDetail | null => {
   const records = useUserRecords();
   return useMemo(() => computeSupermarketDetail(records, name), [records, name]);
+};
+
+export const useBudgetStatus = (): BudgetStatus => {
+  const records = useUserRecords();
+  const getMonthlyBudget = useStore((state) => state.getMonthlyBudget);
+  const limit = getMonthlyBudget();
+  return useMemo(() => computeBudgetStatus(records, limit), [records, limit]);
 };

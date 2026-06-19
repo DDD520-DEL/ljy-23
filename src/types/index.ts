@@ -150,6 +150,41 @@ export interface CloudSyncState {
   syncError: string | null;
 }
 
+export interface FormData {
+  supermarketName: string;
+  shelfLocation: string;
+  productName: string;
+  category: string;
+  originalPrice: string;
+  discount: string;
+  expiryDate: string;
+  purchaseDate: string;
+  purchaseTime: string;
+  notes: string;
+}
+
+export interface CategorySpending {
+  name: string;
+  color: string;
+  totalSpent: number;
+  count: number;
+}
+
+export interface MonthlyBudget {
+  userId: string;
+  limit: number;
+}
+
+export interface BudgetStatus {
+  limit: number;
+  spent: number;
+  remaining: number;
+  percentage: number;
+  isOverBudget: boolean;
+  overAmount: number;
+  byCategory: CategorySpending[];
+}
+
 export interface StoreState {
   users: User[];
   currentUser: User | null;
@@ -159,6 +194,7 @@ export interface StoreState {
   syncPhase: SyncPhase;
   lastSyncTime: string | null;
   syncError: string | null;
+  monthlyBudgets: MonthlyBudget[];
   register: (username: string, password: string) => { success: boolean; message: string };
   login: (username: string, password: string) => { success: boolean; message: string };
   logout: () => void;
@@ -175,21 +211,11 @@ export interface StoreState {
   getAllProductNames: () => string[];
   getSupermarketScores: () => SupermarketScore[];
   getSupermarketDetail: (name: string) => SupermarketDetail | null;
+  getMonthlyBudget: () => number;
+  setMonthlyBudget: (limit: number) => void;
+  getBudgetStatus: () => BudgetStatus;
   loadFromStorage: () => void;
   syncToCloud: () => Promise<void>;
   syncFromCloud: () => Promise<void>;
   syncAll: () => Promise<void>;
-}
-
-export interface FormData {
-  supermarketName: string;
-  shelfLocation: string;
-  productName: string;
-  category: string;
-  originalPrice: string;
-  discount: string;
-  expiryDate: string;
-  purchaseDate: string;
-  purchaseTime: string;
-  notes: string;
 }
