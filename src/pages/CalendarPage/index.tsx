@@ -65,6 +65,8 @@ const CalendarPage = () => {
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [popupVisible, setPopupVisible] = useState(false);
+  const [shouldRenderPopup, setShouldRenderPopup] = useState(false);
   const popupRef = useRef<HTMLDivElement>(null);
 
   const monthRecordsMap = useMemo(() => {
@@ -145,6 +147,8 @@ const CalendarPage = () => {
     } else {
       setCurrentMonth(m => m - 1);
     }
+    setPopupVisible(false);
+    setShouldRenderPopup(false);
     setSelectedDate(null);
   }, [currentMonth]);
 
@@ -155,6 +159,8 @@ const CalendarPage = () => {
     } else {
       setCurrentMonth(m => m + 1);
     }
+    setPopupVisible(false);
+    setShouldRenderPopup(false);
     setSelectedDate(null);
   }, [currentMonth]);
 
@@ -162,28 +168,45 @@ const CalendarPage = () => {
     const now = new Date();
     setCurrentYear(now.getFullYear());
     setCurrentMonth(now.getMonth());
+    setPopupVisible(false);
+    setShouldRenderPopup(false);
     setSelectedDate(null);
-  }, []);
-
-  const handleDayClick = useCallback((dateKey: string) => {
-    setSelectedDate(prev => prev === dateKey ? null : dateKey);
   }, []);
 
   const closePopup = useCallback(() => {
-    setSelectedDate(null);
+    setPopupVisible(false);
+    setTimeout(() => {
+      setSelectedDate(null);
+      setShouldRenderPopup(false);
+    }, 300);
   }, []);
+
+  const handleDayClick = useCallback((dateKey: string) => {
+    if (selectedDate === dateKey) {
+      closePopup();
+    } else {
+      setSelectedDate(dateKey);
+      setShouldRenderPopup(true);
+      setPopupVisible(false);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setPopupVisible(true);
+        });
+      });
+    }
+  }, [selectedDate, closePopup]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
-        setSelectedDate(null);
+        closePopup();
       }
     };
-    if (selectedDate) {
+    if (shouldRenderPopup) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [selectedDate]);
+  }, [shouldRenderPopup, closePopup]);
 
   const isToday = (dateKey: string) => {
     const now = new Date();
@@ -334,12 +357,26 @@ const CalendarPage = () => {
         </div>
       </div>
 
-      {selectedDate && selectedDayData && (
+      {shouldRenderPopup && selectedDayData && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={closePopup}>
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div
+            className={`absolute inset-0 bg-black/40 backdrop-blur-sm calendar-popup-backdrop ${
+              popupVisible ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
           <div
             ref={popupRef}
-            className="relative w-full max-w-lg mx-4 mb-0 sm:mb-0 max-h-[70vh] flex flex-col card-paper rounded-t-2xl sm:rounded-2xl overflow-hidden stamp-animation"
+            className={`relative w-full max-w-lg mx-4 mb-0 sm:mb-0 max-h-[70vh] flex flex-col rounded-t-2xl sm:rounded-2xl overflow-hidden calendar-popup-panel ${
+              popupVisible ? 'opacity-100 sm:scale-100 sm:rotate-0 translate-y-0' : 'opacity-0 sm:scale-110 sm:-rotate-3 translate-y-full sm:translate-y-0'
+            }`}
+            style={{
+              backgroundImage: 'linear-gradient(135deg, rgba(254, 243, 199, 0.8) 0%, rgba(255, 251, 235, 0.9) 100%)',
+              border: '2px solid #B45309',
+              borderRadius: '1rem',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+              backgroundColor: '#FFFBEB',
+              position: 'relative',
+            }}
             onClick={e => e.stopPropagation()}
           >
             <div className="tape" style={{ top: '-8px', left: '20px' }} />
