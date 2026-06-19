@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { ScrollText, BarChart3, Map, ListTodo, ShoppingCart, Compass, LogIn, LogOut, User, Settings, CalendarDays, BookOpen, Navigation as NavigationIcon, Medal, Bell } from 'lucide-react';
-import { useStore, useUnreadNotificationCount } from '../../store/useStore';
+import { ScrollText, BarChart3, Map, ListTodo, ShoppingCart, Compass, LogIn, LogOut, User, Settings, CalendarDays, BookOpen, Navigation as NavigationIcon, Medal, Bell, Archive } from 'lucide-react';
+import { useStore, useUnreadNotificationCount, useUserDeletedRecords } from '../../store/useStore';
 import SyncStatus from '../Sync/SyncStatus';
 
 const Navigation = () => {
@@ -8,6 +8,8 @@ const Navigation = () => {
   const logout = useStore((state) => state.logout);
   const navigate = useNavigate();
   const unreadCount = useUnreadNotificationCount();
+  const deletedRecords = useUserDeletedRecords();
+  const deletedCount = deletedRecords.length;
 
   const navItems = [
     { path: '/', label: '记录中心', icon: ScrollText },
@@ -20,6 +22,7 @@ const Navigation = () => {
     { path: '/calendar', label: '捡漏日历', icon: CalendarDays },
     { path: '/tips-guide', label: '捡漏技巧', icon: BookOpen },
     { path: '/notifications', label: '消息中心', icon: Bell, badge: unreadCount },
+    { path: '/recycle-bin', label: '回收站', icon: Archive, badge: deletedCount },
   ];
 
   const handleLogout = () => {

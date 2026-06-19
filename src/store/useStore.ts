@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useMemo } from 'react';
-import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory, SupermarketScore, SupermarketDetail, BudgetStatus, MonthlyBudget, Tag, ShoppingListItem, Feedback, Achievement, Notification } from '../types';
+import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory, SupermarketScore, SupermarketDetail, BudgetStatus, MonthlyBudget, Tag, ShoppingListItem, Feedback, Achievement, Notification, DeletedRecord } from '../types';
 import { generateId, calculateTotalSavings, computeStatsFromRecords, computeProductPriceHistory, computeSupermarketScores, computeSupermarketDetail, computeBudgetStatus, achievementConfigs, checkAchievementUnlocked, getAchievementProgress } from '../utils/calculations';
+import { RECYCLE_BIN_RETENTION_DAYS } from '../types';
 import { defaultSupermarkets, defaultCategories } from '../utils/mockData';
 import { uploadToCloud, downloadFromCloud, mergeRecords } from '../services/cloudSync';
 
@@ -12,6 +13,7 @@ export const useStore = create<StoreState>()(
       users: [],
       currentUser: null,
       records: [],
+      deletedRecords: [],
       tags: [],
       supermarkets: defaultSupermarkets,
       categories: defaultCategories,
@@ -107,8 +109,16 @@ export const useStore = create<StoreState>()(
       },
 
       deleteRecord: (id) => {
+        const { records } = get();
+        const record = records.find((r) => r.id === id);
+        if (!record) return;
+        const deletedItem: DeletedRecord = {
+          record,
+          deletedAt: new Date().toISOString(),
+        };
         set((state) => ({
           records: state.records.filter((r) => r.id !== id),
+          deletedRecords: [deletedItem, ...state.deletedRecords],
         }));
       },
 
@@ -779,10 +789,56 @@ export const useStore = create<StoreState>()(
         }));
       },
 
+      restoreRecord: (id) => {
+        const { deletedRecords } = get();
+        const deletedItem = deletedRecords.find((d) => d.record.id === id);
+        if (!deletedItem) return;
+        set((state) => ({
+          deletedRecords: state.deletedRecords.filter((d) => d.record.id !== id),
+          records: [deletedItem.record, ...state.records],
+        }));
+      },
+
+      permanentDeleteRecord: (id) => {
+        set((state) => ({
+          deletedRecords: state.deletedRecords.filter((d) => d.record.id !== id),
+        }));
+      },
+
+      batchRestoreRecords: (ids) => {
+        const { deletedRecords } = get();
+        const toRestore = deletedRecords.filter((d) => ids.includes(d.record.id));
+        if (toRestore.length === 0) return;
+        set((state) => ({
+          deletedRecords: state.deletedRecords.filter((d) => !ids.includes(d.record.id)),
+          records: [...toRestore.map((d) => d.record), ...state.records],
+        }));
+      },
+
+      batchPermanentDeleteRecords: (ids) => {
+        set((state) => ({
+          deletedRecords: state.deletedRecords.filter((d) => !ids.includes(d.record.id)),
+        }));
+      },
+
+      cleanExpiredDeletedRecords: () => {
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        set((state) => ({
+          deletedRecords: state.deletedRecords.filter((d) => {
+            const deletedDate = new Date(d.deletedAt);
+            deletedDate.setHours(0, 0, 0, 0);
+            const daysSinceDeleted = Math.floor((now.getTime() - deletedDate.getTime()) / (1000 * 60 * 60 * 24));
+            return daysSinceDeleted < RECYCLE_BIN_RETENTION_DAYS;
+          }),
+        }));
+      },
+
       clearAllData: () => {
         set({
           currentUser: null,
           records: [],
+          deletedRecords: [],
           tags: [],
           monthlyBudgets: [],
           shoppingList: [],
@@ -803,6 +859,7 @@ export const useStore = create<StoreState>()(
         users: state.users,
         currentUser: state.currentUser,
         records: state.records,
+        deletedRecords: state.deletedRecords,
         tags: state.tags,
         lastSyncTime: state.lastSyncTime,
         monthlyBudgets: state.monthlyBudgets,
@@ -962,4 +1019,15 @@ export const useUnreadNotificationCount = () => {
   return useMemo(() => {
     return userNotifications.filter(n => !n.read).length;
   }, [userNotifications]);
+};
+
+export const useUserDeletedRecords = () => {
+  const deletedRecords = useStore((state) => state.deletedRecords);
+  const currentUser = useStore((state) => state.currentUser);
+  return useMemo(() => {
+    if (!currentUser) return [];
+    return deletedRecords
+      .filter((d) => d.record.userId === currentUser.id)
+      .sort((a, b) => new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime());
+  }, [deletedRecords, currentUser]);
 };

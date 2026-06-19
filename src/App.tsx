@@ -17,6 +17,7 @@ import NearbyDealsPage from "@/pages/NearbyDealsPage";
 import FeedbackPage from "@/pages/FeedbackPage";
 import BadgesPage from "@/pages/BadgesPage";
 import NotificationsPage from "@/pages/NotificationsPage";
+import RecycleBinPage from "@/pages/RecycleBinPage";
 import { useStore } from "@/store/useStore";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -126,6 +127,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <NotificationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/recycle-bin"
+            element={
+              <ProtectedRoute>
+                <RecycleBinPage />
               </ProtectedRoute>
             }
           />

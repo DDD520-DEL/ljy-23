@@ -155,7 +155,7 @@ const ListPage = () => {
   };
 
   const handleBatchDelete = () => {
-    if (confirm(`确定要删除选中的 ${selectedRecordIds.length} 条记录吗？`)) {
+    if (confirm(`确定要删除选中的 ${selectedRecordIds.length} 条记录吗？删除后可在回收站中恢复。`)) {
       selectedRecordIds.forEach(id => deleteRecord(id));
       setSelectedRecordIds([]);
       setIsBatchMode(false);

@@ -146,6 +146,13 @@ export interface SupermarketDetail {
   recentRecords: Record[];
 }
 
+export const RECYCLE_BIN_RETENTION_DAYS = 30;
+
+export interface DeletedRecord {
+  record: Record;
+  deletedAt: string;
+}
+
 export type SyncPhase = 'idle' | 'downloading' | 'merging' | 'uploading' | 'success' | 'error';
 
 export interface UserCloudData {
@@ -259,6 +266,7 @@ export interface StoreState {
   users: User[];
   currentUser: User | null;
   records: Record[];
+  deletedRecords: DeletedRecord[];
   tags: Tag[];
   supermarkets: Supermarket[];
   categories: Category[];
@@ -275,6 +283,11 @@ export interface StoreState {
   updateRecord: (id: string, record: Partial<Record>) => void;
   markAlertHandled: (id: string) => void;
   toggleFavorite: (id: string) => void;
+  restoreRecord: (id: string) => void;
+  permanentDeleteRecord: (id: string) => void;
+  batchRestoreRecords: (ids: string[]) => void;
+  batchPermanentDeleteRecords: (ids: string[]) => void;
+  cleanExpiredDeletedRecords: () => void;
   addTag: (name: string, color: string) => { success: boolean; message: string; tag?: Tag };
   updateTag: (id: string, name: string, color: string) => { success: boolean; message: string };
   deleteTag: (id: string) => { success: boolean; message: string };
