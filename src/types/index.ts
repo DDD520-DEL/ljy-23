@@ -1,3 +1,11 @@
+export interface Tag {
+  id: string;
+  userId: string;
+  name: string;
+  color: string;
+  createdAt: string;
+}
+
 export interface Record {
   id: string;
   userId: string;
@@ -13,6 +21,8 @@ export interface Record {
   x: number;
   y: number;
   alertHandled?: boolean;
+  isFavorite?: boolean;
+  tagIds?: string[];
 }
 
 export interface User {
@@ -189,6 +199,7 @@ export interface StoreState {
   users: User[];
   currentUser: User | null;
   records: Record[];
+  tags: Tag[];
   supermarkets: Supermarket[];
   categories: Category[];
   syncPhase: SyncPhase;
@@ -202,6 +213,14 @@ export interface StoreState {
   deleteRecord: (id: string) => void;
   updateRecord: (id: string, record: Partial<Record>) => void;
   markAlertHandled: (id: string) => void;
+  toggleFavorite: (id: string) => void;
+  addTag: (name: string, color: string) => { success: boolean; message: string; tag?: Tag };
+  updateTag: (id: string, name: string, color: string) => { success: boolean; message: string };
+  deleteTag: (id: string) => { success: boolean; message: string };
+  addTagToRecord: (recordId: string, tagId: string) => void;
+  removeTagFromRecord: (recordId: string, tagId: string) => void;
+  batchAddTagsToRecords: (recordIds: string[], tagIds: string[]) => void;
+  batchRemoveTagsFromRecords: (recordIds: string[], tagIds: string[]) => void;
   getStats: () => StatsData;
   getPublicStats: () => PublicStats;
   getRecordsBySupermarket: (name: string) => Record[];

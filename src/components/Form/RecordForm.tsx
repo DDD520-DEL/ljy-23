@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Store, MapPin, Tag, Coins, Percent, Calendar, Clock, FileText, Save, RotateCcw, Wallet, AlertTriangle } from 'lucide-react';
-import { useStore, useUserRecords } from '../../store/useStore';
+import { Store, MapPin, Tag, Coins, Percent, Calendar, Clock, FileText, Save, RotateCcw, Wallet, AlertTriangle, Star, Tags } from 'lucide-react';
+import { useStore, useUserRecords, useUserTags } from '../../store/useStore';
 import { calculateDiscountPrice, calculateSavings, calculateDaysUntilExpiry, formatCurrency, formatDiscount, computeBudgetStatusWithNewRecord } from '../../utils/calculations';
 import { getSupermarketCoords } from '../../utils/mockData';
 import type { FormData, BudgetStatus } from '../../types';
@@ -13,6 +13,7 @@ const RecordForm = () => {
   const currentUser = useStore((state) => state.currentUser);
   const monthlyBudgets = useStore((state) => state.monthlyBudgets);
   const userRecords = useUserRecords();
+  const tags = useUserTags();
   const [showSuccess, setShowSuccess] = useState(false);
   const [showBudgetAlert, setShowBudgetAlert] = useState(false);
   const [pendingBudgetStatus, setPendingBudgetStatus] = useState<BudgetStatus | null>(null);
@@ -33,6 +34,9 @@ const RecordForm = () => {
     purchaseTime: currentTime,
     notes: '',
   });
+  
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
   const budgetLimit = useMemo(() => {
     if (!currentUser) return 0;
@@ -78,6 +82,16 @@ const RecordForm = () => {
       purchaseTime: nowTime,
       notes: '',
     });
+    setIsFavorite(false);
+    setSelectedTagIds([]);
+  };
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTagIds(prev => 
+      prev.includes(tagId) 
+        ? prev.filter(id => id !== tagId) 
+        : [...prev, tagId]
+    );
   };
 
   const doSubmit = () => {
@@ -100,6 +114,8 @@ const RecordForm = () => {
       notes: formData.notes,
       x: coords.x,
       y: coords.y,
+      isFavorite: isFavorite,
+      tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
     });
 
     setShowSuccess(true);
@@ -353,6 +369,64 @@ const RecordForm = () => {
               className="input-field resize-none h-20"
               placeholder="记录一下发现的过程或心得..."
             />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="label-text">
+                <Star className="inline w-5 h-5 mr-2" />
+                收藏标记
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsFavorite(!isFavorite)}
+                className={`w-full p-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${
+                  isFavorite
+                    ? 'bg-amber-100 border-amber-500 text-amber-700'
+                    : 'bg-parchment-100 border-amber-200 text-amber-500 hover:border-amber-300'
+                }`}
+              >
+                <Star className={`w-5 h-5 ${isFavorite ? 'fill-amber-500' : ''}`} />
+                {isFavorite ? '已收藏 ⭐' : '点击收藏此记录'}
+              </button>
+            </div>
+
+            {tags.length > 0 && (
+              <div>
+                <label className="label-text">
+                  <Tags className="inline w-5 h-5 mr-2" />
+                  添加标签
+                  {selectedTagIds.length > 0 && (
+                    <span className="ml-2 badge-stamp stamp-amber text-xs">
+                      已选 {selectedTagIds.length}
+                    </span>
+                  )}
+                </label>
+                <div className="flex flex-wrap gap-2 p-3 bg-parchment-100 rounded-lg border border-amber-200 min-h-[60px]">
+                  {tags.map(tag => {
+                    const isSelected = selectedTagIds.includes(tag.id);
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => toggleTag(tag.id)}
+                        className={`px-2.5 py-1 rounded-full text-sm font-medium flex items-center gap-1 transition-all hover:scale-105`}
+                        style={{
+                          backgroundColor: isSelected ? tag.color : `${tag.color}20`,
+                          color: isSelected ? 'white' : tag.color,
+                          border: `1px solid ${tag.color}`,
+                          boxShadow: isSelected ? `0 0 0 2px white, 0 0 0 4px ${tag.color}` : 'none',
+                        }}
+                      >
+                        <Tag className="w-3.5 h-3.5" />
+                        {tag.name}
+                        {isSelected && <span className="text-xs">✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {liveBudgetStatus && budgetLimit > 0 && (

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useMemo } from 'react';
-import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory, SupermarketScore, SupermarketDetail, BudgetStatus, MonthlyBudget } from '../types';
+import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory, SupermarketScore, SupermarketDetail, BudgetStatus, MonthlyBudget, Tag } from '../types';
 import { generateId, calculateTotalSavings, computeStatsFromRecords, computeProductPriceHistory, computeSupermarketScores, computeSupermarketDetail, computeBudgetStatus } from '../utils/calculations';
 import { defaultSupermarkets, defaultCategories } from '../utils/mockData';
 import { uploadToCloud, downloadFromCloud, mergeRecords } from '../services/cloudSync';
@@ -12,6 +12,7 @@ export const useStore = create<StoreState>()(
       users: [],
       currentUser: null,
       records: [],
+      tags: [],
       supermarkets: defaultSupermarkets,
       categories: defaultCategories,
       syncPhase: 'idle',
@@ -116,6 +117,134 @@ export const useStore = create<StoreState>()(
           records: state.records.map((r) =>
             r.id === id ? { ...r, alertHandled: true } : r
           ),
+        }));
+      },
+
+      toggleFavorite: (id) => {
+        set((state) => ({
+          records: state.records.map((r) =>
+            r.id === id ? { ...r, isFavorite: !r.isFavorite } : r
+          ),
+        }));
+      },
+
+      addTag: (name, color) => {
+        const { tags, currentUser } = get();
+        if (!currentUser) return { success: false, message: '请先登录' };
+
+        const trimmedName = name.trim();
+        if (!trimmedName) return { success: false, message: '标签名称不能为空' };
+
+        const userTags = tags.filter(t => t.userId === currentUser.id);
+        if (userTags.some(t => t.name.toLowerCase() === trimmedName.toLowerCase())) {
+          return { success: false, message: '该标签名称已存在' };
+        }
+
+        const newTag: Tag = {
+          id: generateId(),
+          userId: currentUser.id,
+          name: trimmedName,
+          color: color || '#f59e0b',
+          createdAt: new Date().toISOString(),
+        };
+
+        set((state) => ({
+          tags: [...state.tags, newTag],
+        }));
+
+        return { success: true, message: '标签创建成功', tag: newTag };
+      },
+
+      updateTag: (id, name, color) => {
+        const { tags, currentUser } = get();
+        if (!currentUser) return { success: false, message: '请先登录' };
+
+        const trimmedName = name.trim();
+        if (!trimmedName) return { success: false, message: '标签名称不能为空' };
+
+        const tag = tags.find(t => t.id === id);
+        if (!tag || tag.userId !== currentUser.id) {
+          return { success: false, message: '标签不存在或无权限修改' };
+        }
+
+        const userTags = tags.filter(t => t.userId === currentUser.id && t.id !== id);
+        if (userTags.some(t => t.name.toLowerCase() === trimmedName.toLowerCase())) {
+          return { success: false, message: '该标签名称已存在' };
+        }
+
+        set((state) => ({
+          tags: state.tags.map((t) =>
+            t.id === id ? { ...t, name: trimmedName, color } : t
+          ),
+        }));
+
+        return { success: true, message: '标签更新成功' };
+      },
+
+      deleteTag: (id) => {
+        const { tags, currentUser } = get();
+        if (!currentUser) return { success: false, message: '请先登录' };
+
+        const tag = tags.find(t => t.id === id);
+        if (!tag || tag.userId !== currentUser.id) {
+          return { success: false, message: '标签不存在或无权限删除' };
+        }
+
+        set((state) => ({
+          tags: state.tags.filter((t) => t.id !== id),
+          records: state.records.map((r) => ({
+            ...r,
+            tagIds: r.tagIds?.filter((tid) => tid !== id),
+          })),
+        }));
+
+        return { success: true, message: '标签删除成功' };
+      },
+
+      addTagToRecord: (recordId, tagId) => {
+        set((state) => ({
+          records: state.records.map((r) =>
+            r.id === recordId
+              ? { ...r, tagIds: [...(r.tagIds || []), tagId] }
+              : r
+          ),
+        }));
+      },
+
+      removeTagFromRecord: (recordId, tagId) => {
+        set((state) => ({
+          records: state.records.map((r) =>
+            r.id === recordId
+              ? { ...r, tagIds: r.tagIds?.filter((tid) => tid !== tagId) }
+              : r
+          ),
+        }));
+      },
+
+      batchAddTagsToRecords: (recordIds, tagIdsToAdd) => {
+        set((state) => ({
+          records: state.records.map((r) => {
+            if (!recordIds.includes(r.id)) return r;
+            const newTagIds = [...(r.tagIds || [])];
+            tagIdsToAdd.forEach((tid) => {
+              if (!newTagIds.includes(tid)) {
+                newTagIds.push(tid);
+              }
+            });
+            return { ...r, tagIds: newTagIds };
+          }),
+        }));
+      },
+
+      batchRemoveTagsFromRecords: (recordIds, tagIdsToRemove) => {
+        set((state) => ({
+          records: state.records.map((r) => {
+            if (!recordIds.includes(r.id)) return r;
+            return {
+              ...r,
+              tagIds: r.tagIds?.filter((tid) => !tagIdsToRemove.includes(tid)),
+            };
+          }),
         }));
       },
 
@@ -358,6 +487,7 @@ export const useStore = create<StoreState>()(
         users: state.users,
         currentUser: state.currentUser,
         records: state.records,
+        tags: state.tags,
         lastSyncTime: state.lastSyncTime,
         monthlyBudgets: state.monthlyBudgets,
       }),
@@ -372,6 +502,15 @@ export const useUserRecords = () => {
     if (!currentUser) return [];
     return records.filter(r => r.userId === currentUser.id);
   }, [records, currentUser]);
+};
+
+export const useUserTags = () => {
+  const tags = useStore((state) => state.tags);
+  const currentUser = useStore((state) => state.currentUser);
+  return useMemo(() => {
+    if (!currentUser) return [];
+    return tags.filter(t => t.userId === currentUser.id);
+  }, [tags, currentUser]);
 };
 
 export const useUserStats = (): StatsData => {
