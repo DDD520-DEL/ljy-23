@@ -1,26 +1,38 @@
+import { useState } from 'react';
 import { useUserStats } from '../../store/useStore';
 import StatsCard from '../../components/Card/StatsCard';
 import SupermarketChart from '../../components/Chart/SupermarketChart';
 import CategoryPieChart from '../../components/Chart/CategoryPieChart';
 import TrendChart from '../../components/Chart/TrendChart';
-import { ScrollText, Coins, Percent, Calendar, Trophy } from 'lucide-react';
+import ShareReportModal from '../../components/Report/ShareReportModal';
+import { ScrollText, Coins, Percent, Calendar, Trophy, Share2 } from 'lucide-react';
 
 const StatsPage = () => {
   const stats = useUserStats();
+  const [showShareModal, setShowShareModal] = useState(false);
 
   return (
     <div className="space-y-8">
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-2 mb-2">
-          <Trophy className="w-8 h-8 text-amber-600" />
-          <h2 className="title-display text-3xl md:text-4xl text-amber-900">
-            战绩统计
-          </h2>
-          <Trophy className="w-8 h-8 text-amber-600" />
+      <div className="text-center mb-8 relative">
+        <div className="flex items-center justify-center mb-2">
+          <div className="flex items-center gap-2">
+            <Trophy className="w-8 h-8 text-amber-600" />
+            <h2 className="title-display text-3xl md:text-4xl text-amber-900">
+              战绩统计
+            </h2>
+            <Trophy className="w-8 h-8 text-amber-600" />
+          </div>
         </div>
-        <p className="text-amber-700 font-body text-lg">
+        <p className="text-amber-700 font-body text-lg mb-4">
           查看你的捡漏战绩，发现省钱规律
         </p>
+        <button
+          onClick={() => setShowShareModal(true)}
+          className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-600 to-amber-700 text-parchment-100 rounded-xl font-display text-lg shadow-lg border-2 border-amber-900 hover:from-amber-500 hover:to-amber-600 transition-all transform hover:scale-105 active:scale-95"
+        >
+          <Share2 className="w-5 h-5" />
+          生成捡漏战报
+        </button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -156,6 +168,11 @@ const StatsPage = () => {
           <p className="text-amber-700">开始记录你的捡漏经历，这里会展示你的战绩统计！</p>
         </div>
       )}
+
+      <ShareReportModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+      />
     </div>
   );
 };

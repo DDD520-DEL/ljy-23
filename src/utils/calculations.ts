@@ -184,6 +184,24 @@ export const computeStatsFromRecords = (records: Record[]): StatsData => {
   };
 };
 
+export const filterRecordsByMonth = (records: Record[], monthKey: string): Record[] => {
+  return records.filter(record => getMonthKey(record.purchaseDate) === monthKey);
+};
+
+export const filterRecordsBySupermarket = (records: Record[], supermarketName: string): Record[] => {
+  return records.filter(record => record.supermarketName === supermarketName);
+};
+
+export const getAvailableMonths = (records: Record[]): string[] => {
+  const monthSet = new Set(records.map(r => getMonthKey(r.purchaseDate)));
+  return Array.from(monthSet).sort().reverse();
+};
+
+export const getAvailableSupermarkets = (records: Record[]): string[] => {
+  const supermarketSet = new Set(records.map(r => r.supermarketName));
+  return Array.from(supermarketSet).sort();
+};
+
 export const computeProductPriceHistory = (records: Record[], productName: string): ProductPriceHistory | null => {
   const productRecords = records
     .filter(r => r.productName.toLowerCase() === productName.toLowerCase())
