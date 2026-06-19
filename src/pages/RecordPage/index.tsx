@@ -1,13 +1,13 @@
-import { useStore, useUserRecords } from '../../store/useStore';
+import { useStore, useUserRecords, useUserStats } from '../../store/useStore';
 import RecordForm from '../../components/Form/RecordForm';
 import RecordCard from '../../components/Card/RecordCard';
 import { Sparkles } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 
 const RecordPage = () => {
-  const { deleteRecord, getStats } = useStore();
+  const { deleteRecord } = useStore();
   const records = useUserRecords();
-  const stats = getStats();
+  const stats = useUserStats();
   const recentRecords = records.slice(0, 3);
 
   const todayStats = useMemo(() => {

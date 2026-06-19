@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { StoreState, Record, StatsData, SupermarketStat, CategoryStat, MonthStat, User, PublicStats } from '../types';
-import { generateId, calculateSavings, calculateTotalSavings, calculateAverageDiscount, getMonthKey, getMonthLabel } from '../utils/calculations';
-import { defaultSupermarkets, defaultCategories, getCategoryColor } from '../utils/mockData';
+import { useMemo } from 'react';
+import type { StoreState, Record, StatsData, User, PublicStats } from '../types';
+import { generateId, calculateTotalSavings, computeStatsFromRecords } from '../utils/calculations';
+import { defaultSupermarkets, defaultCategories } from '../utils/mockData';
 
 export const useStore = create<StoreState>()(
   persist(
@@ -103,107 +104,10 @@ export const useStore = create<StoreState>()(
 
       getStats: (): StatsData => {
         const { records, currentUser } = get();
-        const userRecords = currentUser 
-          ? records.filter(r => r.userId === currentUser.id) 
+        const userRecords = currentUser
+          ? records.filter(r => r.userId === currentUser.id)
           : [];
-
-        if (userRecords.length === 0) {
-          return {
-            totalRecords: 0,
-            totalSavings: 0,
-            averageDiscount: 0,
-            latestRecord: null,
-            bySupermarket: [],
-            byCategory: [],
-            byMonth: [],
-          };
-        }
-
-        const totalSavings = calculateTotalSavings(userRecords);
-        const averageDiscount = calculateAverageDiscount(userRecords);
-        const latestRecord = userRecords[0];
-
-        const supermarketMap = new Map<string, { count: number; totalSavings: number; totalDiscount: number; x: number; y: number }>();
-        const categoryMap = new Map<string, { count: number; totalSavings: number; totalDiscount: number }>();
-        const monthMap = new Map<string, { count: number; totalSavings: number }>();
-
-        userRecords.forEach((record) => {
-          const savings = calculateSavings(record.originalPrice, record.discount);
-          const monthKey = getMonthKey(record.purchaseDate);
-
-          if (!supermarketMap.has(record.supermarketName)) {
-            const supermarket = defaultSupermarkets.find(s => s.name === record.supermarketName);
-            supermarketMap.set(record.supermarketName, {
-              count: 0,
-              totalSavings: 0,
-              totalDiscount: 0,
-              x: supermarket?.x || 50,
-              y: supermarket?.y || 50,
-            });
-          }
-          const superData = supermarketMap.get(record.supermarketName)!;
-          superData.count++;
-          superData.totalSavings += savings;
-          superData.totalDiscount += record.discount;
-
-          if (!categoryMap.has(record.category)) {
-            categoryMap.set(record.category, {
-              count: 0,
-              totalSavings: 0,
-              totalDiscount: 0,
-            });
-          }
-          const catData = categoryMap.get(record.category)!;
-          catData.count++;
-          catData.totalSavings += savings;
-          catData.totalDiscount += record.discount;
-
-          if (!monthMap.has(monthKey)) {
-            monthMap.set(monthKey, { count: 0, totalSavings: 0 });
-          }
-          const monthData = monthMap.get(monthKey)!;
-          monthData.count++;
-          monthData.totalSavings += savings;
-        });
-
-        const bySupermarket: SupermarketStat[] = Array.from(supermarketMap.entries())
-          .map(([name, data]) => ({
-            name,
-            count: data.count,
-            totalSavings: Number(data.totalSavings.toFixed(2)),
-            averageDiscount: Number((data.totalDiscount / data.count).toFixed(1)),
-            x: data.x,
-            y: data.y,
-          }))
-          .sort((a, b) => b.count - a.count);
-
-        const byCategory: CategoryStat[] = Array.from(categoryMap.entries())
-          .map(([name, data]) => ({
-            name,
-            count: data.count,
-            totalSavings: Number(data.totalSavings.toFixed(2)),
-            averageDiscount: Number((data.totalDiscount / data.count).toFixed(1)),
-            color: getCategoryColor(name),
-          }))
-          .sort((a, b) => b.count - a.count);
-
-        const byMonth: MonthStat[] = Array.from(monthMap.entries())
-          .map(([monthKey, data]) => ({
-            month: getMonthLabel(monthKey),
-            count: data.count,
-            totalSavings: Number(data.totalSavings.toFixed(2)),
-          }))
-          .sort((a, b) => a.month.localeCompare(b.month));
-
-        return {
-          totalRecords: userRecords.length,
-          totalSavings: Number(totalSavings.toFixed(2)),
-          averageDiscount,
-          latestRecord,
-          bySupermarket,
-          byCategory,
-          byMonth,
-        };
+        return computeStatsFromRecords(userRecords);
       },
 
       getPublicStats: (): PublicStats => {
@@ -218,16 +122,16 @@ export const useStore = create<StoreState>()(
 
       getRecordsBySupermarket: (name: string): Record[] => {
         const { records, currentUser } = get();
-        const userRecords = currentUser 
-          ? records.filter(r => r.userId === currentUser.id) 
+        const userRecords = currentUser
+          ? records.filter(r => r.userId === currentUser.id)
           : [];
         return userRecords.filter((r) => r.supermarketName === name);
       },
 
       getRecordsByCategory: (category: string): Record[] => {
         const { records, currentUser } = get();
-        const userRecords = currentUser 
-          ? records.filter(r => r.userId === currentUser.id) 
+        const userRecords = currentUser
+          ? records.filter(r => r.userId === currentUser.id)
           : [];
         return userRecords.filter((r) => r.category === category);
       },
@@ -251,4 +155,9 @@ export const useUserRecords = () => {
     if (!state.currentUser) return [];
     return state.records.filter(r => r.userId === state.currentUser!.id);
   });
+};
+
+export const useUserStats = (): StatsData => {
+  const records = useUserRecords();
+  return useMemo(() => computeStatsFromRecords(records), [records]);
 };

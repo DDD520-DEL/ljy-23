@@ -1,4 +1,5 @@
-import type { Record } from '../types';
+import type { Record, StatsData, SupermarketStat, CategoryStat, MonthStat } from '../types';
+import { defaultSupermarkets, getCategoryColor } from './mockData';
 
 export const calculateDiscountPrice = (originalPrice: number, discount: number): number => {
   return Number((originalPrice * (discount / 10)).toFixed(2));
@@ -81,4 +82,104 @@ export const calculateAverageDiscount = (records: Record[]): number => {
   if (records.length === 0) return 0;
   const total = records.reduce((sum, record) => sum + record.discount, 0);
   return Number((total / records.length).toFixed(1));
+};
+
+export const computeStatsFromRecords = (records: Record[]): StatsData => {
+  if (records.length === 0) {
+    return {
+      totalRecords: 0,
+      totalSavings: 0,
+      averageDiscount: 0,
+      latestRecord: null,
+      bySupermarket: [],
+      byCategory: [],
+      byMonth: [],
+    };
+  }
+
+  const totalSavings = calculateTotalSavings(records);
+  const averageDiscount = calculateAverageDiscount(records);
+  const latestRecord = records[0];
+
+  const supermarketMap = new Map<string, { count: number; totalSavings: number; totalDiscount: number; x: number; y: number }>();
+  const categoryMap = new Map<string, { count: number; totalSavings: number; totalDiscount: number }>();
+  const monthMap = new Map<string, { count: number; totalSavings: number }>();
+
+  records.forEach((record) => {
+    const savings = calculateSavings(record.originalPrice, record.discount);
+    const monthKey = getMonthKey(record.purchaseDate);
+
+    if (!supermarketMap.has(record.supermarketName)) {
+      const supermarket = defaultSupermarkets.find(s => s.name === record.supermarketName);
+      supermarketMap.set(record.supermarketName, {
+        count: 0,
+        totalSavings: 0,
+        totalDiscount: 0,
+        x: supermarket?.x || 50,
+        y: supermarket?.y || 50,
+      });
+    }
+    const superData = supermarketMap.get(record.supermarketName)!;
+    superData.count++;
+    superData.totalSavings += savings;
+    superData.totalDiscount += record.discount;
+
+    if (!categoryMap.has(record.category)) {
+      categoryMap.set(record.category, {
+        count: 0,
+        totalSavings: 0,
+        totalDiscount: 0,
+      });
+    }
+    const catData = categoryMap.get(record.category)!;
+    catData.count++;
+    catData.totalSavings += savings;
+    catData.totalDiscount += record.discount;
+
+    if (!monthMap.has(monthKey)) {
+      monthMap.set(monthKey, { count: 0, totalSavings: 0 });
+    }
+    const monthData = monthMap.get(monthKey)!;
+    monthData.count++;
+    monthData.totalSavings += savings;
+  });
+
+  const bySupermarket: SupermarketStat[] = Array.from(supermarketMap.entries())
+    .map(([name, data]) => ({
+      name,
+      count: data.count,
+      totalSavings: Number(data.totalSavings.toFixed(2)),
+      averageDiscount: Number((data.totalDiscount / data.count).toFixed(1)),
+      x: data.x,
+      y: data.y,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const byCategory: CategoryStat[] = Array.from(categoryMap.entries())
+    .map(([name, data]) => ({
+      name,
+      count: data.count,
+      totalSavings: Number(data.totalSavings.toFixed(2)),
+      averageDiscount: Number((data.totalDiscount / data.count).toFixed(1)),
+      color: getCategoryColor(name),
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const byMonth: MonthStat[] = Array.from(monthMap.entries())
+    .map(([monthKey, data]) => ({
+      month: getMonthLabel(monthKey),
+      count: data.count,
+      totalSavings: Number(data.totalSavings.toFixed(2)),
+    }))
+    .sort((a, b) => a.month.localeCompare(b.month));
+
+  return {
+    totalRecords: records.length,
+    totalSavings: Number(totalSavings.toFixed(2)),
+    averageDiscount,
+    latestRecord,
+    bySupermarket,
+    byCategory,
+    byMonth,
+  };
 };

@@ -1,4 +1,4 @@
-import { useStore } from '../../store/useStore';
+import { useUserStats } from '../../store/useStore';
 import StatsCard from '../../components/Card/StatsCard';
 import SupermarketChart from '../../components/Chart/SupermarketChart';
 import CategoryPieChart from '../../components/Chart/CategoryPieChart';
@@ -6,8 +6,7 @@ import TrendChart from '../../components/Chart/TrendChart';
 import { ScrollText, Coins, Percent, Calendar, Trophy } from 'lucide-react';
 
 const StatsPage = () => {
-  const { getStats } = useStore();
-  const stats = getStats();
+  const stats = useUserStats();
 
   return (
     <div className="space-y-8">
