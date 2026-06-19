@@ -1,15 +1,18 @@
-import { useStore, useUserRecords, useUserStats } from '../../store/useStore';
+import { useUserRecords, useUserStats } from '../../store/useStore';
 import RecordForm from '../../components/Form/RecordForm';
-import RecordCard from '../../components/Card/RecordCard';
 import BudgetOverviewCard from '../../components/Budget/BudgetOverviewCard';
-import { Sparkles } from 'lucide-react';
+import DashboardCardGrid from '../../components/Dashboard/DashboardCardGrid';
+import { Sparkles, ScrollText, LayoutDashboard } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 
+type TabType = 'dashboard' | 'record';
+
 const RecordPage = () => {
-  const deleteRecord = useStore((state) => state.deleteRecord);
   const records = useUserRecords();
   const stats = useUserStats();
   const recentRecords = records.slice(0, 3);
+
+  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
 
   const todayStats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -59,114 +62,150 @@ const RecordPage = () => {
 
   return (
     <div className="space-y-8">
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-2 mb-2">
-          <Sparkles className="w-6 h-6 text-amber-600" />
-          <h2 className="title-display text-3xl md:text-4xl text-amber-900">
-            记录中心
-          </h2>
-          <Sparkles className="w-6 h-6 text-amber-600" />
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div className="text-center md:text-left">
+          <div className="inline-flex items-center gap-2 mb-2">
+            <Sparkles className="w-6 h-6 text-amber-600" />
+            <h2 className="title-display text-3xl md:text-4xl text-amber-900">
+              {activeTab === 'dashboard' ? '猎人看板' : '记录中心'}
+            </h2>
+            <Sparkles className="w-6 h-6 text-amber-600" />
+          </div>
+          <p className="text-amber-700 font-body text-lg">
+            {activeTab === 'dashboard' 
+              ? '一览今日捡漏战绩与省钱趋势'
+              : '记录每一次精彩的捡漏，积累你的省钱战绩'
+            }
+          </p>
         </div>
-        <p className="text-amber-700 font-body text-lg">
-          记录每一次精彩的捡漏，积累你的省钱战绩
-        </p>
+
+        <div className="flex items-center justify-center md:justify-end gap-1 p-1.5 bg-parchment-100 rounded-xl border-2 border-amber-300 shadow-inner">
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-display transition-all duration-200 ${
+              activeTab === 'dashboard'
+                ? 'bg-amber-600 text-parchment-100 shadow-stamp'
+                : 'text-amber-800 hover:bg-parchment-200'
+            }`}
+          >
+            <LayoutDashboard className="w-5 h-5" />
+            <span>看板视图</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('record')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-display transition-all duration-200 ${
+              activeTab === 'record'
+                ? 'bg-amber-600 text-parchment-100 shadow-stamp'
+                : 'text-amber-800 hover:bg-parchment-200'
+            }`}
+          >
+            <ScrollText className="w-5 h-5" />
+            <span>记录视图</span>
+          </button>
+        </div>
       </div>
 
-      {stats.latestRecord && (
-        <div className="card-paper p-4 mb-6 bg-gradient-to-r from-amber-50 to-parchment-100">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-amber-600 rounded-full flex items-center justify-center text-parchment-100 text-2xl">
-              🎉
-            </div>
-            <div className="flex-1">
-              <p className="text-sm text-amber-600 font-display">最近一次捡漏</p>
-              <p className="font-display text-xl text-amber-900">
-                {stats.latestRecord.productName}
-              </p>
-              <p className="text-sm text-amber-700">
-                在 {stats.latestRecord.supermarketName} 以 {stats.latestRecord.discount}折 入手
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="font-mono text-2xl font-bold text-forest-700">
-                省 ¥{(stats.latestRecord.originalPrice * (1 - stats.latestRecord.discount / 10)).toFixed(2)}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-        <div className="lg:col-span-3">
-          <RecordForm />
-        </div>
-
-        <div className="lg:col-span-2 space-y-6">
-          <BudgetOverviewCard />
-
-          <div className="card-paper p-6 relative">
-            <div className="tape" style={{ top: '-8px', right: '30px', transform: 'rotate(5deg)' }} />
-            <h3 className="font-display text-xl text-amber-900 mb-4 flex items-center gap-2">
-              📊 今日战绩
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-3 bg-parchment-100 rounded-lg border border-amber-200 relative overflow-hidden">
-                <p className="text-xs text-amber-600 mb-1">今日捡漏次数</p>
-                <p className={`font-mono text-3xl font-bold text-amber-800 ${isAnimating ? 'number-pop' : ''}`}>
-                  {displayCount}
-                </p>
-              </div>
-              <div className="text-center p-3 bg-parchment-100 rounded-lg border border-amber-200 relative overflow-hidden">
-                <p className="text-xs text-amber-600 mb-1">今日节省</p>
-                <p className={`font-mono text-3xl font-bold text-forest-700 ${isAnimating ? 'number-pop' : ''}`}>
-                  ¥{displaySavings.toFixed(0)}
-                </p>
-              </div>
-            </div>
-            {todayStats.count === 0 && (
-              <p className="text-center text-sm text-amber-500 mt-3 italic">
-                今天还没有记录，快去淘临期好物吧！
-              </p>
-            )}
-          </div>
-
-          {recentRecords.length > 0 && (
-            <div>
-              <h3 className="font-display text-xl text-amber-900 mb-4 flex items-center gap-2">
-                📝 最近记录
-              </h3>
-              <div className="space-y-4">
-                {recentRecords.map((record, index) => (
-                  <div 
-                    key={record.id} 
-                    className="card-paper p-4 relative"
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-display text-lg text-amber-900">
-                          {record.productName}
-                        </h4>
-                        <p className="text-sm text-amber-700">
-                          📍 {record.supermarketName}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <span className="badge-stamp stamp-green text-xs">
-                          {record.discount}折
-                        </span>
-                        <p className="font-mono text-sm text-forest-700 mt-1">
-                          省 ¥{(record.originalPrice * (1 - record.discount / 10)).toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+      {activeTab === 'dashboard' ? (
+        <DashboardCardGrid records={records} />
+      ) : (
+        <>
+          {stats.latestRecord && (
+            <div className="card-paper p-4 mb-6 bg-gradient-to-r from-amber-50 to-parchment-100">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-amber-600 rounded-full flex items-center justify-center text-parchment-100 text-2xl">
+                  🎉
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-amber-600 font-display">最近一次捡漏</p>
+                  <p className="font-display text-xl text-amber-900">
+                    {stats.latestRecord.productName}
+                  </p>
+                  <p className="text-sm text-amber-700">
+                    在 {stats.latestRecord.supermarketName} 以 {stats.latestRecord.discount}折 入手
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-mono text-2xl font-bold text-forest-700">
+                    省 ¥{(stats.latestRecord.originalPrice * (1 - stats.latestRecord.discount / 10)).toFixed(2)}
+                  </p>
+                </div>
               </div>
             </div>
           )}
-        </div>
-      </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <div className="lg:col-span-3">
+              <RecordForm />
+            </div>
+
+            <div className="lg:col-span-2 space-y-6">
+              <BudgetOverviewCard />
+
+              <div className="card-paper p-6 relative">
+                <div className="tape" style={{ top: '-8px', right: '30px', transform: 'rotate(5deg)' }} />
+                <h3 className="font-display text-xl text-amber-900 mb-4 flex items-center gap-2">
+                  📊 今日战绩
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-3 bg-parchment-100 rounded-lg border border-amber-200 relative overflow-hidden">
+                    <p className="text-xs text-amber-600 mb-1">今日捡漏次数</p>
+                    <p className={`font-mono text-3xl font-bold text-amber-800 ${isAnimating ? 'number-pop' : ''}`}>
+                      {displayCount}
+                    </p>
+                  </div>
+                  <div className="text-center p-3 bg-parchment-100 rounded-lg border border-amber-200 relative overflow-hidden">
+                    <p className="text-xs text-amber-600 mb-1">今日节省</p>
+                    <p className={`font-mono text-3xl font-bold text-forest-700 ${isAnimating ? 'number-pop' : ''}`}>
+                      ¥{displaySavings.toFixed(0)}
+                    </p>
+                  </div>
+                </div>
+                {todayStats.count === 0 && (
+                  <p className="text-center text-sm text-amber-500 mt-3 italic">
+                    今天还没有记录，快去淘临期好物吧！
+                  </p>
+                )}
+              </div>
+
+              {recentRecords.length > 0 && (
+                <div>
+                  <h3 className="font-display text-xl text-amber-900 mb-4 flex items-center gap-2">
+                    📝 最近记录
+                  </h3>
+                  <div className="space-y-4">
+                    {recentRecords.map((record, index) => (
+                      <div 
+                        key={record.id} 
+                        className="card-paper p-4 relative"
+                        style={{ animationDelay: `${index * 100}ms` }}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-display text-lg text-amber-900">
+                              {record.productName}
+                            </h4>
+                            <p className="text-sm text-amber-700">
+                              📍 {record.supermarketName}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <span className="badge-stamp stamp-green text-xs">
+                              {record.discount}折
+                            </span>
+                            <p className="font-mono text-sm text-forest-700 mt-1">
+                              省 ¥{(record.originalPrice * (1 - record.discount / 10)).toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
