@@ -160,6 +160,17 @@ export interface CloudSyncState {
   syncError: string | null;
 }
 
+export interface ShoppingListItem {
+  id: string;
+  userId: string;
+  productName: string;
+  category: string;
+  targetDiscount: number;
+  completed: boolean;
+  createdAt: string;
+  completedAt?: string;
+}
+
 export interface FormData {
   supermarketName: string;
   shelfLocation: string;
@@ -206,6 +217,7 @@ export interface StoreState {
   lastSyncTime: string | null;
   syncError: string | null;
   monthlyBudgets: MonthlyBudget[];
+  shoppingList: ShoppingListItem[];
   register: (username: string, password: string) => { success: boolean; message: string };
   login: (username: string, password: string) => { success: boolean; message: string };
   logout: () => void;
@@ -221,6 +233,11 @@ export interface StoreState {
   removeTagFromRecord: (recordId: string, tagId: string) => void;
   batchAddTagsToRecords: (recordIds: string[], tagIds: string[]) => void;
   batchRemoveTagsFromRecords: (recordIds: string[], tagIds: string[]) => void;
+  addShoppingListItem: (item: Omit<ShoppingListItem, 'id' | 'userId' | 'createdAt'>) => void;
+  updateShoppingListItem: (id: string, item: Partial<ShoppingListItem>) => void;
+  deleteShoppingListItem: (id: string) => void;
+  completeShoppingListItem: (id: string) => void;
+  uncompleteShoppingListItem: (id: string) => void;
   getStats: () => StatsData;
   getPublicStats: () => PublicStats;
   getRecordsBySupermarket: (name: string) => Record[];

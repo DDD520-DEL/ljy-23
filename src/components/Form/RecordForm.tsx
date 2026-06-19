@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
-import { Store, MapPin, Tag, Coins, Percent, Calendar, Clock, FileText, Save, RotateCcw, Wallet, AlertTriangle, Star, Tags } from 'lucide-react';
-import { useStore, useUserRecords, useUserTags } from '../../store/useStore';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { Store, MapPin, Tag, Coins, Percent, Calendar, Clock, FileText, Save, RotateCcw, Wallet, AlertTriangle, Star, Tags, ShoppingCart, X } from 'lucide-react';
+import { useStore, useUserRecords, useUserTags, useUserShoppingList } from '../../store/useStore';
 import { calculateDiscountPrice, calculateSavings, calculateDaysUntilExpiry, formatCurrency, formatDiscount, computeBudgetStatusWithNewRecord } from '../../utils/calculations';
-import { getSupermarketCoords } from '../../utils/mockData';
+import { getSupermarketCoords, getCategoryColor } from '../../utils/mockData';
 import type { FormData, BudgetStatus } from '../../types';
 import BudgetAlertModal from '../Budget/BudgetAlertModal';
 
@@ -14,9 +14,14 @@ const RecordForm = () => {
   const monthlyBudgets = useStore((state) => state.monthlyBudgets);
   const userRecords = useUserRecords();
   const tags = useUserTags();
+  const shoppingList = useUserShoppingList();
+  const completeShoppingListItem = useStore((state) => state.completeShoppingListItem);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showBudgetAlert, setShowBudgetAlert] = useState(false);
   const [pendingBudgetStatus, setPendingBudgetStatus] = useState<BudgetStatus | null>(null);
+  const [showShoppingListPicker, setShowShoppingListPicker] = useState(false);
+  const [selectedListItemId, setSelectedListItemId] = useState<string | null>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
   
   const today = new Date().toISOString().split('T')[0];
   const now = new Date();
@@ -37,6 +42,19 @@ const RecordForm = () => {
   
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [pendingShoppingItemId, setPendingShoppingItemId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowShoppingListPicker(false);
+      }
+    };
+    if (showShoppingListPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showShoppingListPicker]);
 
   const budgetLimit = useMemo(() => {
     if (!currentUser) return 0;
@@ -84,6 +102,8 @@ const RecordForm = () => {
     });
     setIsFavorite(false);
     setSelectedTagIds([]);
+    setSelectedListItemId(null);
+    setPendingShoppingItemId(null);
   };
 
   const toggleTag = (tagId: string) => {
@@ -117,6 +137,10 @@ const RecordForm = () => {
       isFavorite: isFavorite,
       tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
     });
+
+    if (pendingShoppingItemId) {
+      completeShoppingListItem(pendingShoppingItemId);
+    }
 
     setShowSuccess(true);
     resetForm();
@@ -167,6 +191,29 @@ const RecordForm = () => {
     parseFloat(formData.originalPrice) > 0 && 
     formData.expiryDate;
 
+  const pendingShoppingItems = shoppingList.filter(item => !item.completed);
+
+  const handleSelectFromShoppingList = (item: typeof shoppingList[0]) => {
+    setFormData(prev => ({
+      ...prev,
+      productName: item.productName,
+      category: item.category,
+      discount: String(item.targetDiscount),
+    }));
+    setSelectedListItemId(item.id);
+    setPendingShoppingItemId(item.id);
+    setShowShoppingListPicker(false);
+  };
+
+  const handleClearShoppingListSelection = () => {
+    setSelectedListItemId(null);
+    setPendingShoppingItemId(null);
+  };
+
+  const selectedListItem = selectedListItemId
+    ? shoppingList.find(item => item.id === selectedListItemId)
+    : null;
+
   return (
     <div className="card-paper p-6 md:p-8 relative overflow-hidden">
       <div className="tape" style={{ top: '-8px', left: '50%', transform: 'translateX(-50%) rotate(2deg)' }} />
@@ -183,6 +230,95 @@ const RecordForm = () => {
         <h2 className="title-display text-2xl md:text-3xl text-center mb-6">
           📜 记录新的捡漏
         </h2>
+
+        {pendingShoppingItems.length > 0 && (
+          <div className="mb-6" ref={pickerRef}>
+            <label className="label-text">
+              <ShoppingCart className="inline w-5 h-5 mr-2" />
+              从购物清单选择
+            </label>
+            {selectedListItem ? (
+              <div className="flex items-center gap-3 p-3 bg-amber-50 border-2 border-amber-500 rounded-lg">
+                <div className="flex-1 min-w-0">
+                  <span className="font-display text-amber-900">{selectedListItem.productName}</span>
+                  <span
+                    className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium border"
+                    style={{
+                      backgroundColor: `${getCategoryColor(selectedListItem.category)}15`,
+                      color: getCategoryColor(selectedListItem.category),
+                      borderColor: `${getCategoryColor(selectedListItem.category)}40`,
+                    }}
+                  >
+                    {selectedListItem.category}
+                  </span>
+                  <span className="ml-2 text-sm text-amber-600">
+                    目标 {formatDiscount(selectedListItem.targetDiscount)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClearShoppingListSelection}
+                  className="p-1 text-amber-500 hover:text-crimson-700 hover:bg-red-50 rounded transition-all"
+                  title="清除选择"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowShoppingListPicker(!showShoppingListPicker)}
+                  className={`w-full p-3 border-2 border-dashed rounded-lg text-left flex items-center gap-2 transition-all ${
+                    showShoppingListPicker
+                      ? 'border-amber-600 bg-amber-50 text-amber-800'
+                      : 'border-amber-300 text-amber-600 hover:border-amber-500 hover:bg-amber-50'
+                  }`}
+                >
+                  <ShoppingCart className="w-5 h-5" />
+                  <span className="font-display">点选清单中的商品，自动回填名称、品类和目标折扣</span>
+                  <span className="ml-auto badge-stamp stamp-amber text-xs">
+                    {pendingShoppingItems.length} 项
+                  </span>
+                </button>
+
+                {showShoppingListPicker && (
+                  <div className="absolute z-30 mt-2 w-full bg-parchment-50 border-2 border-amber-600 rounded-lg shadow-xl max-h-64 overflow-y-auto">
+                    {pendingShoppingItems.map(item => {
+                      const catColor = getCategoryColor(item.category);
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleSelectFromShoppingList(item)}
+                          className="w-full text-left p-3 hover:bg-amber-100 transition-all border-b border-amber-200 last:border-b-0 flex items-center gap-3"
+                        >
+                          <ShoppingCart className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <span className="font-display text-amber-900">{item.productName}</span>
+                            <span
+                              className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium border"
+                              style={{
+                                backgroundColor: `${catColor}15`,
+                                color: catColor,
+                                borderColor: `${catColor}40`,
+                              }}
+                            >
+                              {item.category}
+                            </span>
+                          </div>
+                          <span className="font-mono text-sm text-amber-700 flex-shrink-0">
+                            目标 {formatDiscount(item.targetDiscount)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

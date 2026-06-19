@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useMemo } from 'react';
-import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory, SupermarketScore, SupermarketDetail, BudgetStatus, MonthlyBudget, Tag } from '../types';
+import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory, SupermarketScore, SupermarketDetail, BudgetStatus, MonthlyBudget, Tag, ShoppingListItem } from '../types';
 import { generateId, calculateTotalSavings, computeStatsFromRecords, computeProductPriceHistory, computeSupermarketScores, computeSupermarketDetail, computeBudgetStatus } from '../utils/calculations';
 import { defaultSupermarkets, defaultCategories } from '../utils/mockData';
 import { uploadToCloud, downloadFromCloud, mergeRecords } from '../services/cloudSync';
@@ -19,6 +19,7 @@ export const useStore = create<StoreState>()(
       lastSyncTime: null,
       syncError: null,
       monthlyBudgets: [],
+      shoppingList: [],
 
       register: (username: string, password: string) => {
         const { users } = get();
@@ -245,6 +246,54 @@ export const useStore = create<StoreState>()(
               tagIds: r.tagIds?.filter((tid) => !tagIdsToRemove.includes(tid)),
             };
           }),
+        }));
+      },
+
+      addShoppingListItem: (itemData) => {
+        const { currentUser } = get();
+        if (!currentUser) return;
+        const newItem: ShoppingListItem = {
+          ...itemData,
+          id: generateId(),
+          userId: currentUser.id,
+          createdAt: new Date().toISOString(),
+        };
+        set((state) => ({
+          shoppingList: [...state.shoppingList, newItem],
+        }));
+      },
+
+      updateShoppingListItem: (id, itemData) => {
+        set((state) => ({
+          shoppingList: state.shoppingList.map((item) =>
+            item.id === id ? { ...item, ...itemData } : item
+          ),
+        }));
+      },
+
+      deleteShoppingListItem: (id) => {
+        set((state) => ({
+          shoppingList: state.shoppingList.filter((item) => item.id !== id),
+        }));
+      },
+
+      completeShoppingListItem: (id) => {
+        set((state) => ({
+          shoppingList: state.shoppingList.map((item) =>
+            item.id === id
+              ? { ...item, completed: true, completedAt: new Date().toISOString() }
+              : item
+          ),
+        }));
+      },
+
+      uncompleteShoppingListItem: (id) => {
+        set((state) => ({
+          shoppingList: state.shoppingList.map((item) =>
+            item.id === id
+              ? { ...item, completed: false, completedAt: undefined }
+              : item
+          ),
         }));
       },
 
@@ -490,6 +539,7 @@ export const useStore = create<StoreState>()(
         tags: state.tags,
         lastSyncTime: state.lastSyncTime,
         monthlyBudgets: state.monthlyBudgets,
+        shoppingList: state.shoppingList,
       }),
     }
   )
@@ -511,6 +561,15 @@ export const useUserTags = () => {
     if (!currentUser) return [];
     return tags.filter(t => t.userId === currentUser.id);
   }, [tags, currentUser]);
+};
+
+export const useUserShoppingList = () => {
+  const shoppingList = useStore((state) => state.shoppingList);
+  const currentUser = useStore((state) => state.currentUser);
+  return useMemo(() => {
+    if (!currentUser) return [];
+    return shoppingList.filter(item => item.userId === currentUser.id);
+  }, [shoppingList, currentUser]);
 };
 
 export const useUserStats = (): StatsData => {

@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { ScrollText, BarChart3, Map, ListTodo, Compass, LogIn, LogOut, User } from 'lucide-react';
+import { ScrollText, BarChart3, Map, ListTodo, ShoppingCart, Compass, LogIn, LogOut, User } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import SyncStatus from '../Sync/SyncStatus';
 
@@ -10,6 +10,7 @@ const Navigation = () => {
 
   const navItems = [
     { path: '/', label: '记录中心', icon: ScrollText },
+    { path: '/shopping-list', label: '购物清单', icon: ShoppingCart },
     { path: '/stats', label: '战绩统计', icon: BarChart3 },
     { path: '/map', label: '捡漏地图', icon: Map },
     { path: '/list', label: '记录列表', icon: ListTodo },

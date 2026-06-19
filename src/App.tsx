@@ -9,6 +9,7 @@ import ListPage from "@/pages/ListPage";
 import AuthPage from "@/pages/AuthPage";
 import PublicDashboard from "@/pages/PublicDashboard";
 import ProductDetailPage from "@/pages/ProductDetailPage";
+import ShoppingListPage from "@/pages/ShoppingListPage";
 import { useStore } from "@/store/useStore";
 
 const HomePage = () => {
@@ -60,6 +61,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/shopping-list"
+            element={
+              <ProtectedRoute>
+                <ShoppingListPage />
               </ProtectedRoute>
             }
           />
