@@ -1,4 +1,4 @@
-import type { Record, StatsData, SupermarketStat, CategoryStat, MonthStat, ProductPriceHistory, PriceHistoryPoint, SupermarketScore, CategoryAnalysis, TimeSlotAnalysis, SupermarketDetail, BudgetStatus, CategorySpending } from '../types';
+import type { Record, StatsData, SupermarketStat, CategoryStat, MonthStat, ProductPriceHistory, PriceHistoryPoint, SupermarketScore, CategoryAnalysis, TimeSlotAnalysis, SupermarketDetail, BudgetStatus, CategorySpending, AchievementConfig } from '../types';
 import { defaultSupermarkets, getCategoryColor } from './mockData';
 
 export const calculateDiscountPrice = (originalPrice: number, discount: number): number => {
@@ -568,4 +568,132 @@ export const formatDistance = (distance: number): string => {
     return `${km.toFixed(1)} km`;
   }
   return `${km.toFixed(0)} km`;
+};
+
+export const achievementConfigs: AchievementConfig[] = [
+  {
+    id: 'first-deal',
+    name: '初出茅庐',
+    description: '完成第一次捡漏记录，开启你的临期猎人之旅',
+    requirement: '记录第1次捡漏',
+    icon: '🌱',
+    color: '#22c55e',
+    checkUnlocked: (stats) => stats.totalRecords >= 1,
+    getProgress: (stats) => ({ current: Math.min(stats.totalRecords, 1), total: 1 }),
+  },
+  {
+    id: 'savings-100',
+    name: '省钱百元户',
+    description: '累计节省达到100元，省钱小能手',
+    requirement: '累计节省100元',
+    icon: '💰',
+    color: '#eab308',
+    checkUnlocked: (stats) => stats.totalSavings >= 100,
+    getProgress: (stats) => ({ current: Math.min(Math.floor(stats.totalSavings), 100), total: 100 }),
+  },
+  {
+    id: 'three-fold-sniper',
+    name: '三折狙击手',
+    description: '成功抢到3折或更低折扣的商品',
+    requirement: '有一次记录折扣≤3折',
+    icon: '🎯',
+    color: '#ef4444',
+    checkUnlocked: (_, records) => records.some(r => r.discount <= 3),
+    getProgress: (_, records) => {
+      const hasThreeFold = records.some(r => r.discount <= 3);
+      return { current: hasThreeFold ? 1 : 0, total: 1 };
+    },
+  },
+  {
+    id: 'supermarket-overlord',
+    name: '超市全制霸',
+    description: '在5家不同的超市都有捡漏记录',
+    requirement: '在5家不同超市有记录',
+    icon: '🏪',
+    color: '#8b5cf6',
+    checkUnlocked: (stats) => stats.bySupermarket.length >= 5,
+    getProgress: (stats) => ({ current: Math.min(stats.bySupermarket.length, 5), total: 5 }),
+  },
+  {
+    id: 'deal-master',
+    name: '捡漏达人',
+    description: '累计完成20次捡漏记录',
+    requirement: '累计记录20次',
+    icon: '🏆',
+    color: '#f59e0b',
+    checkUnlocked: (stats) => stats.totalRecords >= 20,
+    getProgress: (stats) => ({ current: Math.min(stats.totalRecords, 20), total: 20 }),
+  },
+  {
+    id: 'discount-hunter',
+    name: '折扣猎人',
+    description: '平均折扣低于5折，且至少记录10次',
+    requirement: '平均折扣≤5折且≥10次记录',
+    icon: '🔍',
+    color: '#06b6d4',
+    checkUnlocked: (stats) => stats.totalRecords >= 10 && stats.averageDiscount <= 5,
+    getProgress: (stats) => {
+      const recordProgress = Math.min(stats.totalRecords, 10);
+      const discountProgress = stats.averageDiscount > 0 ? Math.max(0, Math.min(10, 10 - stats.averageDiscount)) : 0;
+      return { 
+        current: Math.min(recordProgress + Math.floor(discountProgress / 2), 15), 
+        total: 15 
+      };
+    },
+  },
+  {
+    id: 'category-explorer',
+    name: '品类探索家',
+    description: '在5个不同品类都有捡漏记录',
+    requirement: '在5个不同品类有记录',
+    icon: '📦',
+    color: '#ec4899',
+    checkUnlocked: (stats) => stats.byCategory.length >= 5,
+    getProgress: (stats) => ({ current: Math.min(stats.byCategory.length, 5), total: 5 }),
+  },
+  {
+    id: 'savings-1000',
+    name: '千元大亨',
+    description: '累计节省达到1000元，真正的省钱大师',
+    requirement: '累计节省1000元',
+    icon: '👑',
+    color: '#f97316',
+    checkUnlocked: (stats) => stats.totalSavings >= 1000,
+    getProgress: (stats) => ({ current: Math.min(Math.floor(stats.totalSavings), 1000), total: 1000 }),
+  },
+];
+
+export const getAchievementProgress = (
+  stats: StatsData,
+  records: Record[],
+  achievementId: string
+): { current: number; total: number; percentage: number } | null => {
+  const config = achievementConfigs.find(c => c.id === achievementId);
+  if (!config) return null;
+
+  if (config.getProgress) {
+    const { current, total } = config.getProgress(stats, records);
+    return {
+      current,
+      total,
+      percentage: total > 0 ? Math.min(100, (current / total) * 100) : 0,
+    };
+  }
+
+  const unlocked = config.checkUnlocked(stats, records);
+  return {
+    current: unlocked ? 1 : 0,
+    total: 1,
+    percentage: unlocked ? 100 : 0,
+  };
+};
+
+export const checkAchievementUnlocked = (
+  stats: StatsData,
+  records: Record[],
+  achievementId: string
+): boolean => {
+  const config = achievementConfigs.find(c => c.id === achievementId);
+  if (!config) return false;
+  return config.checkUnlocked(stats, records);
 };

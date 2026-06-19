@@ -222,6 +222,26 @@ export interface Feedback {
   errorMessage?: string;
 }
 
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  unlockedAt?: string;
+}
+
+export interface AchievementConfig {
+  id: string;
+  name: string;
+  description: string;
+  requirement: string;
+  icon: string;
+  color: string;
+  checkUnlocked: (stats: StatsData, records: Record[]) => boolean;
+  getProgress?: (stats: StatsData, records: Record[]) => { current: number; total: number };
+}
+
 export interface StoreState {
   users: User[];
   currentUser: User | null;
@@ -279,4 +299,7 @@ export interface StoreState {
   submitFeedback: (id: string) => Promise<void>;
   retryFeedback: (id: string) => Promise<void>;
   deleteFeedback: (id: string) => { success: boolean; message: string };
+  achievements: Achievement[];
+  unlockAchievement: (achievementId: string) => void;
+  checkAndUnlockAchievements: () => Achievement[];
 }

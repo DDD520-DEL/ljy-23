@@ -15,6 +15,7 @@ import CalendarPage from "@/pages/CalendarPage";
 import TipsGuidePage from "@/pages/TipsGuidePage";
 import NearbyDealsPage from "@/pages/NearbyDealsPage";
 import FeedbackPage from "@/pages/FeedbackPage";
+import BadgesPage from "@/pages/BadgesPage";
 import { useStore } from "@/store/useStore";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -108,6 +109,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <TipsGuidePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/badges"
+            element={
+              <ProtectedRoute>
+                <BadgesPage />
               </ProtectedRoute>
             }
           />

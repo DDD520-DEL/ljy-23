@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useMemo } from 'react';
-import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory, SupermarketScore, SupermarketDetail, BudgetStatus, MonthlyBudget, Tag, ShoppingListItem, Feedback } from '../types';
-import { generateId, calculateTotalSavings, computeStatsFromRecords, computeProductPriceHistory, computeSupermarketScores, computeSupermarketDetail, computeBudgetStatus } from '../utils/calculations';
+import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory, SupermarketScore, SupermarketDetail, BudgetStatus, MonthlyBudget, Tag, ShoppingListItem, Feedback, Achievement } from '../types';
+import { generateId, calculateTotalSavings, computeStatsFromRecords, computeProductPriceHistory, computeSupermarketScores, computeSupermarketDetail, computeBudgetStatus, achievementConfigs, checkAchievementUnlocked, getAchievementProgress } from '../utils/calculations';
 import { defaultSupermarkets, defaultCategories } from '../utils/mockData';
 import { uploadToCloud, downloadFromCloud, mergeRecords } from '../services/cloudSync';
 
@@ -21,6 +21,7 @@ export const useStore = create<StoreState>()(
       monthlyBudgets: [],
       shoppingList: [],
       feedbacks: [],
+      achievements: [],
 
       register: (username: string, password: string) => {
         const { users } = get();
@@ -98,6 +99,10 @@ export const useStore = create<StoreState>()(
         set((state) => ({
           records: [newRecord, ...state.records],
         }));
+
+        setTimeout(() => {
+          get().checkAndUnlockAchievements();
+        }, 100);
       },
 
       deleteRecord: (id) => {
@@ -658,6 +663,67 @@ export const useStore = create<StoreState>()(
         return { success: true, message: '删除成功' };
       },
 
+      unlockAchievement: (achievementId: string) => {
+        const { achievements, currentUser } = get();
+        if (!currentUser) return;
+
+        const alreadyUnlocked = achievements.some(
+          (a) => a.id === achievementId && a.unlockedAt
+        );
+        if (alreadyUnlocked) return;
+
+        const config = achievementConfigs.find((c) => c.id === achievementId);
+        if (!config) return;
+
+        const newAchievement: Achievement = {
+          id: config.id,
+          name: config.name,
+          description: config.description,
+          icon: config.icon,
+          color: config.color,
+          unlockedAt: new Date().toISOString(),
+        };
+
+        set((state) => {
+          const filteredAchievements = state.achievements.filter(
+            (a) => !(a.id === achievementId)
+          );
+          return {
+            achievements: [...filteredAchievements, newAchievement],
+          };
+        });
+      },
+
+      checkAndUnlockAchievements: () => {
+        const { currentUser, records, achievements, unlockAchievement } = get();
+        if (!currentUser) return [];
+
+        const userRecords = records.filter((r) => r.userId === currentUser.id);
+        const stats = computeStatsFromRecords(userRecords);
+        const newlyUnlocked: Achievement[] = [];
+
+        achievementConfigs.forEach((config) => {
+          const isUnlocked = checkAchievementUnlocked(stats, userRecords, config.id);
+          const alreadyUnlocked = achievements.some(
+            (a) => a.id === config.id && a.unlockedAt
+          );
+
+          if (isUnlocked && !alreadyUnlocked) {
+            unlockAchievement(config.id);
+            newlyUnlocked.push({
+              id: config.id,
+              name: config.name,
+              description: config.description,
+              icon: config.icon,
+              color: config.color,
+              unlockedAt: new Date().toISOString(),
+            });
+          }
+        });
+
+        return newlyUnlocked;
+      },
+
       clearAllData: () => {
         set({
           currentUser: null,
@@ -666,6 +732,7 @@ export const useStore = create<StoreState>()(
           monthlyBudgets: [],
           shoppingList: [],
           feedbacks: [],
+          achievements: [],
           syncPhase: 'idle',
           lastSyncTime: null,
           syncError: null,
@@ -685,6 +752,7 @@ export const useStore = create<StoreState>()(
         monthlyBudgets: state.monthlyBudgets,
         shoppingList: state.shoppingList,
         feedbacks: state.feedbacks,
+        achievements: state.achievements,
       }),
     }
   )
@@ -771,4 +839,52 @@ export const useBudgetStatus = (): BudgetStatus => {
     return budget ? budget.limit : 0;
   }, [monthlyBudgets, currentUser]);
   return useMemo(() => computeBudgetStatus(records, limit), [records, limit]);
+};
+
+export interface AchievementWithStatus {
+  id: string;
+  name: string;
+  description: string;
+  requirement: string;
+  icon: string;
+  color: string;
+  isUnlocked: boolean;
+  unlockedAt?: string;
+  progress: {
+    current: number;
+    total: number;
+    percentage: number;
+  };
+}
+
+export const useAchievements = (): AchievementWithStatus[] => {
+  const achievements = useStore((state) => state.achievements);
+  const records = useUserRecords();
+  const stats = useUserStats();
+
+  return useMemo(() => {
+    return achievementConfigs.map((config) => {
+      const unlockedAchievement = achievements.find(
+        (a) => a.id === config.id && a.unlockedAt
+      );
+      const isUnlocked = checkAchievementUnlocked(stats, records, config.id);
+      const progress = getAchievementProgress(stats, records, config.id) || {
+        current: 0,
+        total: 1,
+        percentage: 0,
+      };
+
+      return {
+        id: config.id,
+        name: config.name,
+        description: config.description,
+        requirement: config.requirement,
+        icon: config.icon,
+        color: config.color,
+        isUnlocked: isUnlocked || !!unlockedAchievement,
+        unlockedAt: unlockedAchievement?.unlockedAt,
+        progress,
+      };
+    });
+  }, [achievements, records, stats]);
 };
