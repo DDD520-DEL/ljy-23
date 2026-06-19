@@ -1,12 +1,13 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { ScrollText, BarChart3, Map, ListTodo, ShoppingCart, Compass, LogIn, LogOut, User, Settings, CalendarDays, BookOpen, Navigation as NavigationIcon, Medal } from 'lucide-react';
-import { useStore } from '../../store/useStore';
+import { ScrollText, BarChart3, Map, ListTodo, ShoppingCart, Compass, LogIn, LogOut, User, Settings, CalendarDays, BookOpen, Navigation as NavigationIcon, Medal, Bell } from 'lucide-react';
+import { useStore, useUnreadNotificationCount } from '../../store/useStore';
 import SyncStatus from '../Sync/SyncStatus';
 
 const Navigation = () => {
   const currentUser = useStore((state) => state.currentUser);
   const logout = useStore((state) => state.logout);
   const navigate = useNavigate();
+  const unreadCount = useUnreadNotificationCount();
 
   const navItems = [
     { path: '/', label: '记录中心', icon: ScrollText },
@@ -18,6 +19,7 @@ const Navigation = () => {
     { path: '/list', label: '记录列表', icon: ListTodo },
     { path: '/calendar', label: '捡漏日历', icon: CalendarDays },
     { path: '/tips-guide', label: '捡漏技巧', icon: BookOpen },
+    { path: '/notifications', label: '消息中心', icon: Bell, badge: unreadCount },
   ];
 
   const handleLogout = () => {
@@ -50,11 +52,16 @@ const Navigation = () => {
                   key={item.path}
                   to={item.path}
                   className={({ isActive }) =>
-                    `nav-link flex items-center gap-2 ${isActive ? 'active' : ''}`
+                    `nav-link flex items-center gap-2 relative ${isActive ? 'active' : ''}`
                   }
                 >
                   <item.icon className="w-5 h-5" />
                   <span>{item.label}</span>
+                  {item.badge && item.badge > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 bg-crimson-700 text-parchment-100 text-xs font-bold rounded-full flex items-center justify-center border-2 border-parchment-100 dark:border-amber-950">
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </span>
+                  )}
                 </NavLink>
               ))}
             </div>
@@ -64,6 +71,18 @@ const Navigation = () => {
             {currentUser ? (
               <>
                 <SyncStatus />
+                <button
+                  onClick={() => navigate('/notifications')}
+                  className="relative p-2 rounded-lg text-amber-700 hover:bg-amber-100 transition-colors"
+                  title="消息中心"
+                >
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-crimson-700 text-parchment-100 text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-parchment-100 dark:border-amber-950">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </button>
                 <button
                   onClick={() => navigate('/settings')}
                   className="p-2 rounded-lg text-amber-700 hover:bg-amber-100 transition-colors"
@@ -116,7 +135,7 @@ const Navigation = () => {
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `p-2 rounded-lg transition-all ${
+                  `p-2 rounded-lg transition-all relative ${
                     isActive
                       ? 'bg-amber-600 text-parchment-100'
                       : 'text-amber-800 hover:bg-amber-100'
@@ -124,6 +143,11 @@ const Navigation = () => {
                 }
               >
                 <item.icon className="w-5 h-5" />
+                {item.badge && item.badge > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 bg-crimson-700 text-parchment-100 text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-parchment-100 dark:border-amber-950">
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                )}
               </NavLink>
             ))}
           </div>

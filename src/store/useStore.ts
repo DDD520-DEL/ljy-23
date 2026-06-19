@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useMemo } from 'react';
-import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory, SupermarketScore, SupermarketDetail, BudgetStatus, MonthlyBudget, Tag, ShoppingListItem, Feedback, Achievement } from '../types';
+import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory, SupermarketScore, SupermarketDetail, BudgetStatus, MonthlyBudget, Tag, ShoppingListItem, Feedback, Achievement, Notification } from '../types';
 import { generateId, calculateTotalSavings, computeStatsFromRecords, computeProductPriceHistory, computeSupermarketScores, computeSupermarketDetail, computeBudgetStatus, achievementConfigs, checkAchievementUnlocked, getAchievementProgress } from '../utils/calculations';
 import { defaultSupermarkets, defaultCategories } from '../utils/mockData';
 import { uploadToCloud, downloadFromCloud, mergeRecords } from '../services/cloudSync';
@@ -22,6 +22,7 @@ export const useStore = create<StoreState>()(
       shoppingList: [],
       feedbacks: [],
       achievements: [],
+      notifications: [],
 
       register: (username: string, password: string) => {
         const { users } = get();
@@ -695,7 +696,7 @@ export const useStore = create<StoreState>()(
       },
 
       checkAndUnlockAchievements: () => {
-        const { currentUser, records, achievements, unlockAchievement } = get();
+        const { currentUser, records, achievements, unlockAchievement, addNotification } = get();
         if (!currentUser) return [];
 
         const userRecords = records.filter((r) => r.userId === currentUser.id);
@@ -718,10 +719,64 @@ export const useStore = create<StoreState>()(
               color: config.color,
               unlockedAt: new Date().toISOString(),
             });
+            addNotification({
+              type: 'achievement',
+              title: '🎉 新成就解锁！',
+              content: `恭喜你解锁了「${config.name}」成就：${config.description}`,
+              relatedId: config.id,
+            });
           }
         });
 
         return newlyUnlocked;
+      },
+
+      addNotification: (notificationData) => {
+        const { currentUser } = get();
+        if (!currentUser) return;
+
+        const newNotification: Notification = {
+          ...notificationData,
+          id: generateId(),
+          userId: currentUser.id,
+          read: false,
+          createdAt: new Date().toISOString(),
+        };
+        set((state) => ({
+          notifications: [newNotification, ...state.notifications],
+        }));
+      },
+
+      markNotificationRead: (id) => {
+        set((state) => ({
+          notifications: state.notifications.map((n) =>
+            n.id === id ? { ...n, read: true } : n
+          ),
+        }));
+      },
+
+      markAllNotificationsRead: () => {
+        const { currentUser } = get();
+        if (!currentUser) return;
+        set((state) => ({
+          notifications: state.notifications.map((n) =>
+            n.userId === currentUser.id ? { ...n, read: true } : n
+          ),
+        }));
+      },
+
+      deleteNotification: (id) => {
+        set((state) => ({
+          notifications: state.notifications.filter((n) => n.id !== id),
+        }));
+      },
+
+      clearAllNotifications: () => {
+        const { currentUser } = get();
+        if (!currentUser) return;
+        set((state) => ({
+          notifications: state.notifications.filter((n) => n.userId !== currentUser.id),
+        }));
       },
 
       clearAllData: () => {
@@ -733,6 +788,7 @@ export const useStore = create<StoreState>()(
           shoppingList: [],
           feedbacks: [],
           achievements: [],
+          notifications: [],
           syncPhase: 'idle',
           lastSyncTime: null,
           syncError: null,
@@ -753,6 +809,7 @@ export const useStore = create<StoreState>()(
         shoppingList: state.shoppingList,
         feedbacks: state.feedbacks,
         achievements: state.achievements,
+        notifications: state.notifications,
       }),
     }
   )
@@ -887,4 +944,22 @@ export const useAchievements = (): AchievementWithStatus[] => {
       };
     });
   }, [achievements, records, stats]);
+};
+
+export const useUserNotifications = () => {
+  const notifications = useStore((state) => state.notifications);
+  const currentUser = useStore((state) => state.currentUser);
+  return useMemo(() => {
+    if (!currentUser) return [];
+    return notifications
+      .filter(n => n.userId === currentUser.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [notifications, currentUser]);
+};
+
+export const useUnreadNotificationCount = () => {
+  const userNotifications = useUserNotifications();
+  return useMemo(() => {
+    return userNotifications.filter(n => !n.read).length;
+  }, [userNotifications]);
 };

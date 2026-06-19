@@ -16,6 +16,7 @@ import TipsGuidePage from "@/pages/TipsGuidePage";
 import NearbyDealsPage from "@/pages/NearbyDealsPage";
 import FeedbackPage from "@/pages/FeedbackPage";
 import BadgesPage from "@/pages/BadgesPage";
+import NotificationsPage from "@/pages/NotificationsPage";
 import { useStore } from "@/store/useStore";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -117,6 +118,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <BadgesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationsPage />
               </ProtectedRoute>
             }
           />

@@ -242,6 +242,19 @@ export interface AchievementConfig {
   getProgress?: (stats: StatsData, records: Record[]) => { current: number; total: number };
 }
 
+export type NotificationType = 'expiry' | 'backup' | 'achievement' | 'budget' | 'system';
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  content: string;
+  read: boolean;
+  createdAt: string;
+  relatedId?: string;
+}
+
 export interface StoreState {
   users: User[];
   currentUser: User | null;
@@ -302,4 +315,10 @@ export interface StoreState {
   achievements: Achievement[];
   unlockAchievement: (achievementId: string) => void;
   checkAndUnlockAchievements: () => Achievement[];
+  notifications: Notification[];
+  addNotification: (notification: Omit<Notification, 'id' | 'userId' | 'read' | 'createdAt'>) => void;
+  markNotificationRead: (id: string) => void;
+  markAllNotificationsRead: () => void;
+  deleteNotification: (id: string) => void;
+  clearAllNotifications: () => void;
 }
