@@ -10,7 +10,8 @@ const RecordForm = () => {
   const supermarkets = useStore((state) => state.supermarkets);
   const categories = useStore((state) => state.categories);
   const addRecord = useStore((state) => state.addRecord);
-  const getMonthlyBudget = useStore((state) => state.getMonthlyBudget);
+  const currentUser = useStore((state) => state.currentUser);
+  const monthlyBudgets = useStore((state) => state.monthlyBudgets);
   const userRecords = useUserRecords();
   const [showSuccess, setShowSuccess] = useState(false);
   const [showBudgetAlert, setShowBudgetAlert] = useState(false);
@@ -33,7 +34,11 @@ const RecordForm = () => {
     notes: '',
   });
 
-  const budgetLimit = getMonthlyBudget();
+  const budgetLimit = useMemo(() => {
+    if (!currentUser) return 0;
+    const budget = monthlyBudgets.find(b => b.userId === currentUser.id);
+    return budget ? budget.limit : 0;
+  }, [monthlyBudgets, currentUser]);
 
   const liveBudgetStatus = useMemo((): BudgetStatus | null => {
     if (budgetLimit <= 0) return null;

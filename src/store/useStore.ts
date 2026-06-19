@@ -411,7 +411,12 @@ export const useSupermarketDetail = (name: string): SupermarketDetail | null => 
 
 export const useBudgetStatus = (): BudgetStatus => {
   const records = useUserRecords();
-  const getMonthlyBudget = useStore((state) => state.getMonthlyBudget);
-  const limit = getMonthlyBudget();
+  const currentUser = useStore((state) => state.currentUser);
+  const monthlyBudgets = useStore((state) => state.monthlyBudgets);
+  const limit = useMemo(() => {
+    if (!currentUser) return 0;
+    const budget = monthlyBudgets.find(b => b.userId === currentUser.id);
+    return budget ? budget.limit : 0;
+  }, [monthlyBudgets, currentUser]);
   return useMemo(() => computeBudgetStatus(records, limit), [records, limit]);
 };

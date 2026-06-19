@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { X, Coins, Save } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 
@@ -15,16 +15,22 @@ const presetBudgets = [
 ];
 
 const BudgetSettingModal = ({ isOpen, onClose }: BudgetSettingModalProps) => {
-  const getMonthlyBudget = useStore((state) => state.getMonthlyBudget);
+  const currentUser = useStore((state) => state.currentUser);
+  const monthlyBudgets = useStore((state) => state.monthlyBudgets);
   const setMonthlyBudget = useStore((state) => state.setMonthlyBudget);
   const [inputValue, setInputValue] = useState('');
 
+  const currentBudget = useMemo(() => {
+    if (!currentUser) return 0;
+    const budget = monthlyBudgets.find(b => b.userId === currentUser.id);
+    return budget ? budget.limit : 0;
+  }, [monthlyBudgets, currentUser]);
+
   useEffect(() => {
     if (isOpen) {
-      const current = getMonthlyBudget();
-      setInputValue(current > 0 ? String(current) : '');
+      setInputValue(currentBudget > 0 ? String(currentBudget) : '');
     }
-  }, [isOpen, getMonthlyBudget]);
+  }, [isOpen, currentBudget]);
 
   if (!isOpen) return null;
 
