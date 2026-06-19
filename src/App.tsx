@@ -10,7 +10,9 @@ import AuthPage from "@/pages/AuthPage";
 import PublicDashboard from "@/pages/PublicDashboard";
 import ProductDetailPage from "@/pages/ProductDetailPage";
 import ShoppingListPage from "@/pages/ShoppingListPage";
+import SettingsPage from "@/pages/SettingsPage";
 import { useStore } from "@/store/useStore";
+import { useTheme } from "@/hooks/useTheme";
 
 const HomePage = () => {
   const currentUser = useStore((state) => state.currentUser);
@@ -18,6 +20,7 @@ const HomePage = () => {
 };
 
 export default function App() {
+  useTheme();
   const currentUser = useStore((state) => state.currentUser);
   const syncAll = useStore((state) => state.syncAll);
   const hasSynced = useRef(false);
@@ -80,6 +83,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </Layout>
     </Router>

@@ -557,6 +557,21 @@ export const useStore = create<StoreState>()(
           return { records: updatedRecords };
         });
       },
+
+      clearAllData: () => {
+        set({
+          currentUser: null,
+          records: [],
+          tags: [],
+          monthlyBudgets: [],
+          shoppingList: [],
+          syncPhase: 'idle',
+          lastSyncTime: null,
+          syncError: null,
+        });
+        localStorage.removeItem('bargain-hunter-storage');
+        localStorage.removeItem('theme');
+      },
     }),
     {
       name: 'bargain-hunter-storage',

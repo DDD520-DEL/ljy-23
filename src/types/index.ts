@@ -256,4 +256,5 @@ export interface StoreState {
   syncAll: () => Promise<void>;
   batchAddRecords: (records: Array<Omit<Record, 'id' | 'userId'>>) => void;
   batchUpdateRecords: (updates: Array<{ id: string; data: Partial<Record> }>) => void;
+  clearAllData: () => void;
 }

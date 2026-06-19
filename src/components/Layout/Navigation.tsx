@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { ScrollText, BarChart3, Map, ListTodo, ShoppingCart, Compass, LogIn, LogOut, User } from 'lucide-react';
+import { ScrollText, BarChart3, Map, ListTodo, ShoppingCart, Compass, LogIn, LogOut, User, Settings } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import SyncStatus from '../Sync/SyncStatus';
 
@@ -60,6 +60,13 @@ const Navigation = () => {
             {currentUser ? (
               <>
                 <SyncStatus />
+                <button
+                  onClick={() => navigate('/settings')}
+                  className="p-2 rounded-lg text-amber-700 hover:bg-amber-100 transition-colors"
+                  title="设置"
+                >
+                  <Settings className="w-5 h-5" />
+                </button>
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-amber-50 rounded-lg border-2 border-amber-300">
                   <div className="w-8 h-8 bg-amber-600 rounded-full flex items-center justify-center">
                     <User className="w-4 h-4 text-parchment-100" />
@@ -78,13 +85,22 @@ const Navigation = () => {
                 </button>
               </>
             ) : (
-              <button
-                onClick={() => navigate('/auth')}
-                className="btn-stamp btn-primary flex items-center gap-2 !px-4 !py-2 !text-base"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>登录/注册</span>
-              </button>
+              <>
+                <button
+                  onClick={() => navigate('/settings')}
+                  className="p-2 rounded-lg text-amber-700 hover:bg-amber-100 transition-colors"
+                  title="设置"
+                >
+                  <Settings className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => navigate('/auth')}
+                  className="btn-stamp btn-primary flex items-center gap-2 !px-4 !py-2 !text-base"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>登录/注册</span>
+                </button>
+              </>
             )}
           </div>
         </div>
