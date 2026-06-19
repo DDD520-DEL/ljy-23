@@ -563,8 +563,9 @@ export const calculateDistance = (x1: number, y1: number, x2: number, y2: number
 };
 
 export const formatDistance = (distance: number): string => {
-  if (distance < 10) {
-    return `${(distance * 0.1).toFixed(1)} km`;
+  const km = distance * 0.1;
+  if (km < 10) {
+    return `${km.toFixed(1)} km`;
   }
-  return `${(distance * 0.1).toFixed(0)} km`;
+  return `${km.toFixed(0)} km`;
 };

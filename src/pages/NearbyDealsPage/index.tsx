@@ -35,10 +35,20 @@ const NearbyDealsPage = () => {
         dealsList.sort((a, b) => a.distance - b.distance);
         break;
       case 'discount':
-        dealsList.sort((a, b) => a.avgDiscount - b.avgDiscount);
+        dealsList.sort((a, b) => {
+          const aHasData = a.count > 0;
+          const bHasData = b.count > 0;
+          if (aHasData && !bHasData) return -1;
+          if (!aHasData && bHasData) return 1;
+          if (!aHasData && !bHasData) return a.distance - b.distance;
+          return a.avgDiscount - b.avgDiscount;
+        });
         break;
       case 'count':
-        dealsList.sort((a, b) => b.count - a.count);
+        dealsList.sort((a, b) => {
+          if (b.count !== a.count) return b.count - a.count;
+          return a.distance - b.distance;
+        });
         break;
     }
 
