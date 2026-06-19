@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   BookOpen, ChevronDown, ChevronUp, Clock, Percent, Refrigerator,
   Milk, Croissant, Candy, Coffee, Fish, Snowflake, UtensilsCrossed, Apple,
@@ -325,11 +325,25 @@ const TipsGuidePage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (typeof window !== 'undefined') {
-    window.addEventListener('scroll', () => {
+  const isThrottledRef = useRef(false);
+  const handleScroll = useRef<() => void>(() => {
+    if (isThrottledRef.current) return;
+    isThrottledRef.current = true;
+    window.requestAnimationFrame(() => {
       setShowScrollTop(window.scrollY > 400);
+      isThrottledRef.current = false;
     });
-  }
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setShowScrollTop(window.scrollY > 400);
+    const onScroll = handleScroll.current;
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, []);
 
   return (
     <div className="space-y-8 relative">
