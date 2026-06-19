@@ -17,7 +17,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useStore } from '@/store/useStore';
+import { useStore, useUserFeedbacks } from '@/store/useStore';
 import type { Feedback, FeedbackType } from '@/types';
 
 const APP_VERSION = '1.0.0';
@@ -166,7 +166,7 @@ const FeedbackItem = ({
 
 const FeedbackPage = () => {
   const navigate = useNavigate();
-  const feedbacks = useStore((state) => state.feedbacks);
+  const userFeedbacks = useUserFeedbacks();
   const addFeedback = useStore((state) => state.addFeedback);
   const submitFeedback = useStore((state) => state.submitFeedback);
   const retryFeedback = useStore((state) => state.retryFeedback);
@@ -176,9 +176,8 @@ const FeedbackPage = () => {
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(true);
-
-  const userFeedbacks = feedbacks;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,6 +185,7 @@ const FeedbackPage = () => {
 
     setIsSubmitting(true);
     setSubmitSuccess(false);
+    setSubmitError(null);
 
     try {
       const newFeedback = addFeedback({
@@ -200,8 +200,8 @@ const FeedbackPage = () => {
       setDescription('');
 
       setTimeout(() => setSubmitSuccess(false), 3000);
-    } catch {
-      // 错误已在 store 中处理
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : '提交失败，请稍后重试');
     } finally {
       setIsSubmitting(false);
     }
@@ -317,6 +317,24 @@ const FeedbackPage = () => {
             <span className="text-amber-400">（将自动附加到反馈中）</span>
           </p>
         </div>
+
+        {submitError && (
+          <div className="bg-crimson-50 border border-crimson-200 rounded-xl p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-crimson-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-display text-crimson-800 font-medium">提交失败</p>
+              <p className="text-sm text-crimson-600 font-body">{submitError}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSubmitError(null)}
+              className="text-crimson-400 hover:text-crimson-600"
+            >
+              <span className="sr-only">关闭</span>
+              ×
+            </button>
+          </div>
+        )}
 
         <div className="flex gap-3 justify-end pt-2">
           <button

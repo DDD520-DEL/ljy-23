@@ -592,8 +592,19 @@ export const useStore = create<StoreState>()(
       },
 
       submitFeedback: async (id) => {
-        const feedback = get().feedbacks.find((f) => f.id === id);
-        if (!feedback) return;
+        const { feedbacks, currentUser } = get();
+        const feedback = feedbacks.find((f) => f.id === id);
+        if (!feedback) {
+          throw new Error('反馈记录不存在');
+        }
+
+        const hasPermission = currentUser
+          ? feedback.userId === currentUser.id
+          : feedback.userId === null;
+
+        if (!hasPermission) {
+          throw new Error('无权限操作该反馈');
+        }
 
         get().updateFeedbackStatus(id, 'pending');
 
@@ -625,9 +636,24 @@ export const useStore = create<StoreState>()(
       },
 
       deleteFeedback: (id) => {
+        const { feedbacks, currentUser } = get();
+        const feedback = feedbacks.find((f) => f.id === id);
+        if (!feedback) return { success: false, message: '反馈记录不存在' };
+
+        if (currentUser) {
+          if (feedback.userId !== currentUser.id) {
+            return { success: false, message: '无权限删除该反馈' };
+          }
+        } else {
+          if (feedback.userId !== null) {
+            return { success: false, message: '无权限删除该反馈' };
+          }
+        }
+
         set((state) => ({
           feedbacks: state.feedbacks.filter((f) => f.id !== id),
         }));
+        return { success: true, message: '删除成功' };
       },
 
       clearAllData: () => {
@@ -687,6 +713,17 @@ export const useUserShoppingList = () => {
     if (!currentUser) return [];
     return shoppingList.filter(item => item.userId === currentUser.id);
   }, [shoppingList, currentUser]);
+};
+
+export const useUserFeedbacks = () => {
+  const feedbacks = useStore((state) => state.feedbacks);
+  const currentUser = useStore((state) => state.currentUser);
+  return useMemo(() => {
+    if (currentUser) {
+      return feedbacks.filter((f) => f.userId === currentUser.id);
+    }
+    return feedbacks.filter((f) => f.userId === null);
+  }, [feedbacks, currentUser]);
 };
 
 export const useUserStats = (): StatsData => {
