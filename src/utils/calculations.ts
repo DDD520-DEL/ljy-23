@@ -1,4 +1,4 @@
-import type { Record, StatsData, SupermarketStat, CategoryStat, MonthStat } from '../types';
+import type { Record, StatsData, SupermarketStat, CategoryStat, MonthStat, ProductPriceHistory, PriceHistoryPoint } from '../types';
 import { defaultSupermarkets, getCategoryColor } from './mockData';
 
 export const calculateDiscountPrice = (originalPrice: number, discount: number): number => {
@@ -181,5 +181,58 @@ export const computeStatsFromRecords = (records: Record[]): StatsData => {
     bySupermarket,
     byCategory,
     byMonth,
+  };
+};
+
+export const computeProductPriceHistory = (records: Record[], productName: string): ProductPriceHistory | null => {
+  const productRecords = records
+    .filter(r => r.productName.toLowerCase() === productName.toLowerCase())
+    .sort((a, b) => new Date(a.purchaseDate).getTime() - new Date(b.purchaseDate).getTime());
+
+  if (productRecords.length === 0) return null;
+
+  const history: PriceHistoryPoint[] = productRecords.map(record => ({
+    date: record.purchaseDate,
+    discount: record.discount,
+    discountPrice: calculateDiscountPrice(record.originalPrice, record.discount),
+    originalPrice: record.originalPrice,
+    supermarketName: record.supermarketName,
+    recordId: record.id,
+  }));
+
+  let lowestPrice = Infinity;
+  let lowestPriceDate = '';
+  let lowestPriceSupermarket = '';
+  let lowestPriceRecordId = '';
+  let highestDiscount = 0;
+  let totalDiscount = 0;
+  let totalPrice = 0;
+
+  history.forEach(point => {
+    if (point.discountPrice < lowestPrice) {
+      lowestPrice = point.discountPrice;
+      lowestPriceDate = point.date;
+      lowestPriceSupermarket = point.supermarketName;
+      lowestPriceRecordId = point.recordId;
+    }
+    if (point.discount > highestDiscount) {
+      highestDiscount = point.discount;
+    }
+    totalDiscount += point.discount;
+    totalPrice += point.discountPrice;
+  });
+
+  return {
+    productName: productRecords[0].productName,
+    category: productRecords[0].category,
+    totalRecords: history.length,
+    lowestPrice,
+    lowestPriceDate,
+    lowestPriceSupermarket,
+    lowestPriceRecordId,
+    highestDiscount,
+    averageDiscount: Number((totalDiscount / history.length).toFixed(1)),
+    averagePrice: Number((totalPrice / history.length).toFixed(2)),
+    history,
   };
 };

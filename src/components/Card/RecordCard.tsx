@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Trash2, Calendar, MapPin, Tag, Clock, Coins, Percent } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Trash2, Calendar, MapPin, Tag, Clock, Coins, Percent, TrendingDown } from 'lucide-react';
 import type { Record } from '../../types';
 import { calculateDiscountPrice, calculateSavings, calculateDaysUntilExpiry, formatCurrency, formatDiscount, formatShortDate, getExpiryStatus } from '../../utils/calculations';
 import { getCategoryColor } from '../../utils/mockData';
@@ -12,12 +13,17 @@ interface RecordCardProps {
 
 const RecordCard = ({ record, onDelete, showActions = true }: RecordCardProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
+  const navigate = useNavigate();
   
   const discountPrice = calculateDiscountPrice(record.originalPrice, record.discount);
   const savings = calculateSavings(record.originalPrice, record.discount);
   const daysUntilExpiry = calculateDaysUntilExpiry(record.expiryDate);
   const expiryStatus = getExpiryStatus(daysUntilExpiry);
   const categoryColor = getCategoryColor(record.category);
+
+  const handleProductClick = () => {
+    navigate(`/product/${encodeURIComponent(record.productName)}`);
+  };
 
   const handleDelete = () => {
     setIsDeleting(true);
@@ -43,9 +49,15 @@ const RecordCard = ({ record, onDelete, showActions = true }: RecordCardProps) =
       <div className="relative z-10">
         <div className="flex items-start justify-between mb-3">
           <div>
-            <h3 className="font-display text-xl text-amber-900 mb-1">
-              {record.productName}
-            </h3>
+            <button
+              onClick={handleProductClick}
+              className="text-left group"
+            >
+              <h3 className="font-display text-xl text-amber-900 mb-1 group-hover:text-amber-600 transition-colors flex items-center gap-2">
+                {record.productName}
+                <TrendingDown className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-amber-500" />
+              </h3>
+            </button>
             <div className="flex items-center gap-2 text-sm text-amber-700">
               <MapPin className="w-4 h-4" />
               <span>{record.supermarketName}</span>

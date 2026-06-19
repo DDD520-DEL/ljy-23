@@ -7,6 +7,7 @@ import MapPage from "@/pages/MapPage";
 import ListPage from "@/pages/ListPage";
 import AuthPage from "@/pages/AuthPage";
 import PublicDashboard from "@/pages/PublicDashboard";
+import ProductDetailPage from "@/pages/ProductDetailPage";
 import { useStore } from "@/store/useStore";
 
 const HomePage = () => {
@@ -42,6 +43,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/product/:productName"
+            element={
+              <ProtectedRoute>
+                <ProductDetailPage />
               </ProtectedRoute>
             }
           />

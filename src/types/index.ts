@@ -73,6 +73,29 @@ export interface PublicStats {
   totalUsers: number;
 }
 
+export interface PriceHistoryPoint {
+  date: string;
+  discount: number;
+  discountPrice: number;
+  originalPrice: number;
+  supermarketName: string;
+  recordId: string;
+}
+
+export interface ProductPriceHistory {
+  productName: string;
+  category: string;
+  totalRecords: number;
+  lowestPrice: number;
+  lowestPriceDate: string;
+  lowestPriceSupermarket: string;
+  lowestPriceRecordId: string;
+  highestDiscount: number;
+  averageDiscount: number;
+  averagePrice: number;
+  history: PriceHistoryPoint[];
+}
+
 export interface StoreState {
   users: User[];
   currentUser: User | null;
@@ -89,6 +112,9 @@ export interface StoreState {
   getPublicStats: () => PublicStats;
   getRecordsBySupermarket: (name: string) => Record[];
   getRecordsByCategory: (category: string) => Record[];
+  getRecordsByProductName: (productName: string) => Record[];
+  getProductPriceHistory: (productName: string) => ProductPriceHistory | null;
+  getAllProductNames: () => string[];
   loadFromStorage: () => void;
 }
 

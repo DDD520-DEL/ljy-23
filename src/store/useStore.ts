@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useMemo } from 'react';
-import type { StoreState, Record, StatsData, User, PublicStats } from '../types';
-import { generateId, calculateTotalSavings, computeStatsFromRecords } from '../utils/calculations';
+import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory } from '../types';
+import { generateId, calculateTotalSavings, computeStatsFromRecords, computeProductPriceHistory } from '../utils/calculations';
 import { defaultSupermarkets, defaultCategories } from '../utils/mockData';
 
 export const useStore = create<StoreState>()(
@@ -136,6 +136,42 @@ export const useStore = create<StoreState>()(
         return userRecords.filter((r) => r.category === category);
       },
 
+      getRecordsByProductName: (productName: string): Record[] => {
+        const { records, currentUser } = get();
+        const userRecords = currentUser
+          ? records.filter(r => r.userId === currentUser.id)
+          : [];
+        return userRecords.filter(
+          (r) => r.productName.toLowerCase() === productName.toLowerCase()
+        );
+      },
+
+      getProductPriceHistory: (productName: string): ProductPriceHistory | null => {
+        const { records, currentUser } = get();
+        const userRecords = currentUser
+          ? records.filter(r => r.userId === currentUser.id)
+          : [];
+        return computeProductPriceHistory(userRecords, productName);
+      },
+
+      getAllProductNames: (): string[] => {
+        const { records, currentUser } = get();
+        const userRecords = currentUser
+          ? records.filter(r => r.userId === currentUser.id)
+          : [];
+        const productNames = new Set(
+          userRecords.map(r => r.productName.toLowerCase())
+        );
+        const nameMap = new Map<string, string>();
+        userRecords.forEach(r => {
+          const key = r.productName.toLowerCase();
+          if (!nameMap.has(key)) {
+            nameMap.set(key, r.productName);
+          }
+        });
+        return Array.from(productNames).map(key => nameMap.get(key)!);
+      },
+
       loadFromStorage: () => {
       },
     }),
@@ -175,4 +211,11 @@ export const usePublicStats = (): PublicStats => {
       totalUsers: users.length,
     };
   }, [records, users]);
+};
+
+export const useProductPriceHistory = (productName: string): ProductPriceHistory | null => {
+  const records = useUserRecords();
+  return useMemo(() => {
+    return computeProductPriceHistory(records, productName);
+  }, [records, productName]);
 };
