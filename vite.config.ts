@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tsconfigPaths from "vite-tsconfig-paths";
 import { traeBadgePlugin } from 'vite-plugin-trae-solo-badge';
+import { cloudApiPlugin } from './vite-plugin-cloud-api';
 
 export default defineConfig({
   build: {
@@ -24,7 +25,8 @@ export default defineConfig({
       autoTheme: true,
       autoThemeTarget: '#root'
     }), 
-    tsconfigPaths()
+    tsconfigPaths(),
+    cloudApiPlugin(),
   ],
   test: {
     globals: true,

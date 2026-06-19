@@ -14,7 +14,7 @@ export const useStore = create<StoreState>()(
       records: [],
       supermarkets: defaultSupermarkets,
       categories: defaultCategories,
-      syncStatus: 'idle',
+      syncPhase: 'idle',
       lastSyncTime: null,
       syncError: null,
 
@@ -77,7 +77,7 @@ export const useStore = create<StoreState>()(
       logout: () => {
         set({
           currentUser: null,
-          syncStatus: 'idle',
+          syncPhase: 'idle',
           syncError: null,
         });
       },
@@ -211,24 +211,24 @@ export const useStore = create<StoreState>()(
         const { currentUser, records } = get();
         if (!currentUser) return;
 
-        set({ syncStatus: 'syncing', syncError: null });
+        set({ syncPhase: 'uploading', syncError: null });
 
         try {
           const userRecords = records.filter(r => r.userId === currentUser.id);
           const result = await uploadToCloud(currentUser.id, userRecords);
           set({
-            syncStatus: 'success',
+            syncPhase: 'success',
             lastSyncTime: result.lastSyncTime,
           });
           setTimeout(() => {
-            if (get().syncStatus === 'success') {
-              set({ syncStatus: 'idle' });
+            if (get().syncPhase === 'success') {
+              set({ syncPhase: 'idle' });
             }
           }, 3000);
         } catch (error) {
           set({
-            syncStatus: 'error',
-            syncError: error instanceof Error ? error.message : '同步失败',
+            syncPhase: 'error',
+            syncError: error instanceof Error ? error.message : '上传同步失败',
           });
         }
       },
@@ -237,31 +237,35 @@ export const useStore = create<StoreState>()(
         const { currentUser, records } = get();
         if (!currentUser) return;
 
-        set({ syncStatus: 'syncing', syncError: null });
+        set({ syncPhase: 'downloading', syncError: null });
 
         try {
           const cloudData = await downloadFromCloud(currentUser.id);
+
+          set({ syncPhase: 'merging' });
+
           if (cloudData) {
             const userRecords = records.filter(r => r.userId === currentUser.id);
             const otherRecords = records.filter(r => r.userId !== currentUser.id);
             const merged = mergeRecords(userRecords, cloudData.records);
             set({
               records: [...merged, ...otherRecords],
-              syncStatus: 'success',
+              syncPhase: 'success',
               lastSyncTime: cloudData.lastSyncTime || new Date().toISOString(),
             });
           } else {
-            set({ syncStatus: 'success' });
+            set({ syncPhase: 'success' });
           }
+
           setTimeout(() => {
-            if (get().syncStatus === 'success') {
-              set({ syncStatus: 'idle' });
+            if (get().syncPhase === 'success') {
+              set({ syncPhase: 'idle' });
             }
           }, 3000);
         } catch (error) {
           set({
-            syncStatus: 'error',
-            syncError: error instanceof Error ? error.message : '同步失败',
+            syncPhase: 'error',
+            syncError: error instanceof Error ? error.message : '下载同步失败',
           });
         }
       },
@@ -270,10 +274,13 @@ export const useStore = create<StoreState>()(
         const { currentUser, records } = get();
         if (!currentUser) return;
 
-        set({ syncStatus: 'syncing', syncError: null });
+        set({ syncPhase: 'downloading', syncError: null });
 
         try {
           const cloudData = await downloadFromCloud(currentUser.id);
+
+          set({ syncPhase: 'merging' });
+
           const userRecords = records.filter(r => r.userId === currentUser.id);
           const otherRecords = records.filter(r => r.userId !== currentUser.id);
 
@@ -289,23 +296,25 @@ export const useStore = create<StoreState>()(
             records: [...mergedRecords, ...otherRecords],
           });
 
+          set({ syncPhase: 'uploading' });
+
           const finalUserRecords = [...mergedRecords];
           const uploadResult = await uploadToCloud(currentUser.id, finalUserRecords);
 
           set({
-            syncStatus: 'success',
+            syncPhase: 'success',
             lastSyncTime: uploadResult.lastSyncTime || cloudSyncTime,
           });
 
           setTimeout(() => {
-            if (get().syncStatus === 'success') {
-              set({ syncStatus: 'idle' });
+            if (get().syncPhase === 'success') {
+              set({ syncPhase: 'idle' });
             }
           }, 3000);
         } catch (error) {
           set({
-            syncStatus: 'error',
-            syncError: error instanceof Error ? error.message : '同步失败',
+            syncPhase: 'error',
+            syncError: error instanceof Error ? error.message : '同步失败，请重试',
           });
         }
       },

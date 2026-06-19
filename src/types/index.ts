@@ -136,7 +136,7 @@ export interface SupermarketDetail {
   recentRecords: Record[];
 }
 
-export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
+export type SyncPhase = 'idle' | 'downloading' | 'merging' | 'uploading' | 'success' | 'error';
 
 export interface UserCloudData {
   records: Record[];
@@ -145,7 +145,7 @@ export interface UserCloudData {
 }
 
 export interface CloudSyncState {
-  syncStatus: SyncStatus;
+  syncPhase: SyncPhase;
   lastSyncTime: string | null;
   syncError: string | null;
 }
@@ -156,7 +156,7 @@ export interface StoreState {
   records: Record[];
   supermarkets: Supermarket[];
   categories: Category[];
-  syncStatus: SyncStatus;
+  syncPhase: SyncPhase;
   lastSyncTime: string | null;
   syncError: string | null;
   register: (username: string, password: string) => { success: boolean; message: string };
