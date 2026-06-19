@@ -206,6 +206,22 @@ export interface BudgetStatus {
   byCategory: CategorySpending[];
 }
 
+export type FeedbackType = 'bug' | 'feature' | 'question' | 'other';
+
+export type FeedbackStatus = 'pending' | 'submitted' | 'failed';
+
+export interface Feedback {
+  id: string;
+  userId: string | null;
+  type: FeedbackType;
+  description: string;
+  version: string;
+  status: FeedbackStatus;
+  createdAt: string;
+  submittedAt?: string;
+  errorMessage?: string;
+}
+
 export interface StoreState {
   users: User[];
   currentUser: User | null;
@@ -257,4 +273,10 @@ export interface StoreState {
   batchAddRecords: (records: Array<Omit<Record, 'id' | 'userId'>>) => void;
   batchUpdateRecords: (updates: Array<{ id: string; data: Partial<Record> }>) => void;
   clearAllData: () => void;
+  feedbacks: Feedback[];
+  addFeedback: (feedback: Omit<Feedback, 'id' | 'userId' | 'status' | 'createdAt'>) => Feedback;
+  updateFeedbackStatus: (id: string, status: FeedbackStatus, errorMessage?: string) => void;
+  submitFeedback: (id: string) => Promise<void>;
+  retryFeedback: (id: string) => Promise<void>;
+  deleteFeedback: (id: string) => void;
 }

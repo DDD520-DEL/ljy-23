@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useMemo } from 'react';
-import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory, SupermarketScore, SupermarketDetail, BudgetStatus, MonthlyBudget, Tag, ShoppingListItem } from '../types';
+import type { StoreState, Record, StatsData, User, PublicStats, ProductPriceHistory, SupermarketScore, SupermarketDetail, BudgetStatus, MonthlyBudget, Tag, ShoppingListItem, Feedback } from '../types';
 import { generateId, calculateTotalSavings, computeStatsFromRecords, computeProductPriceHistory, computeSupermarketScores, computeSupermarketDetail, computeBudgetStatus } from '../utils/calculations';
 import { defaultSupermarkets, defaultCategories } from '../utils/mockData';
 import { uploadToCloud, downloadFromCloud, mergeRecords } from '../services/cloudSync';
@@ -20,6 +20,7 @@ export const useStore = create<StoreState>()(
       syncError: null,
       monthlyBudgets: [],
       shoppingList: [],
+      feedbacks: [],
 
       register: (username: string, password: string) => {
         const { users } = get();
@@ -558,6 +559,77 @@ export const useStore = create<StoreState>()(
         });
       },
 
+      addFeedback: (feedbackData) => {
+        const { currentUser } = get();
+        const newFeedback: Feedback = {
+          id: generateId(),
+          userId: currentUser ? currentUser.id : null,
+          type: feedbackData.type,
+          description: feedbackData.description,
+          version: feedbackData.version,
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+        };
+        set((state) => ({
+          feedbacks: [newFeedback, ...state.feedbacks],
+        }));
+        return newFeedback;
+      },
+
+      updateFeedbackStatus: (id, status, errorMessage) => {
+        set((state) => ({
+          feedbacks: state.feedbacks.map((f) =>
+            f.id === id
+              ? {
+                  ...f,
+                  status,
+                  errorMessage,
+                  submittedAt: status === 'submitted' ? new Date().toISOString() : f.submittedAt,
+                }
+              : f
+          ),
+        }));
+      },
+
+      submitFeedback: async (id) => {
+        const feedback = get().feedbacks.find((f) => f.id === id);
+        if (!feedback) return;
+
+        get().updateFeedbackStatus(id, 'pending');
+
+        try {
+          await new Promise((resolve, reject) => {
+            setTimeout(() => {
+              const shouldFail = Math.random() < 0.1;
+              if (shouldFail) {
+                reject(new Error('网络连接失败，请稍后重试'));
+              } else {
+                resolve(true);
+              }
+            }, 1000);
+          });
+
+          get().updateFeedbackStatus(id, 'submitted');
+        } catch (error) {
+          get().updateFeedbackStatus(
+            id,
+            'failed',
+            error instanceof Error ? error.message : '提交失败'
+          );
+          throw error;
+        }
+      },
+
+      retryFeedback: async (id) => {
+        await get().submitFeedback(id);
+      },
+
+      deleteFeedback: (id) => {
+        set((state) => ({
+          feedbacks: state.feedbacks.filter((f) => f.id !== id),
+        }));
+      },
+
       clearAllData: () => {
         set({
           currentUser: null,
@@ -565,6 +637,7 @@ export const useStore = create<StoreState>()(
           tags: [],
           monthlyBudgets: [],
           shoppingList: [],
+          feedbacks: [],
           syncPhase: 'idle',
           lastSyncTime: null,
           syncError: null,
@@ -583,6 +656,7 @@ export const useStore = create<StoreState>()(
         lastSyncTime: state.lastSyncTime,
         monthlyBudgets: state.monthlyBudgets,
         shoppingList: state.shoppingList,
+        feedbacks: state.feedbacks,
       }),
     }
   )
