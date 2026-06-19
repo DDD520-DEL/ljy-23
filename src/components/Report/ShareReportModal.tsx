@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { X, Download, Link2, Calendar, Store, Globe, Check, Loader2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import ReportCard, { ReportDimension } from './ReportCard';
@@ -13,12 +13,18 @@ import {
 } from '../../utils/calculations';
 import type { StatsData, Record } from '../../types';
 
+export interface ShareReportInitialState {
+  dimensionType: 'all' | 'month' | 'supermarket';
+  value?: string;
+}
+
 interface ShareReportModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialState?: ShareReportInitialState;
 }
 
-const ShareReportModal = ({ isOpen, onClose }: ShareReportModalProps) => {
+const ShareReportModal = ({ isOpen, onClose, initialState }: ShareReportModalProps) => {
   const allRecords = useUserRecords();
   const currentUser = useStore((state) => state.currentUser);
 
@@ -33,6 +39,42 @@ const ShareReportModal = ({ isOpen, onClose }: ShareReportModalProps) => {
 
   const availableMonths = useMemo(() => getAvailableMonths(allRecords), [allRecords]);
   const availableSupermarkets = useMemo(() => getAvailableSupermarkets(allRecords), [allRecords]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (initialState) {
+      setDimensionType(initialState.dimensionType);
+      if (initialState.dimensionType === 'month' && initialState.value) {
+        setSelectedMonth(initialState.value);
+        setSelectedSupermarket('');
+      } else if (initialState.dimensionType === 'supermarket' && initialState.value) {
+        setSelectedSupermarket(initialState.value);
+        setSelectedMonth('');
+      } else {
+        setSelectedMonth('');
+        setSelectedSupermarket('');
+      }
+    } else {
+      setDimensionType('all');
+      setSelectedMonth('');
+      setSelectedSupermarket('');
+    }
+  }, [isOpen, initialState]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (dimensionType === 'month' && selectedMonth && availableMonths.length > 0) {
+      if (!availableMonths.includes(selectedMonth)) {
+        setSelectedMonth(availableMonths[0]);
+      }
+    }
+    if (dimensionType === 'supermarket' && selectedSupermarket && availableSupermarkets.length > 0) {
+      if (!availableSupermarkets.includes(selectedSupermarket)) {
+        setSelectedSupermarket(availableSupermarkets[0]);
+      }
+    }
+  }, [isOpen, dimensionType, selectedMonth, selectedSupermarket, availableMonths, availableSupermarkets]);
 
   const dimension: ReportDimension = useMemo(() => {
     if (dimensionType === 'all') return 'all';
@@ -85,13 +127,16 @@ const ShareReportModal = ({ isOpen, onClose }: ShareReportModalProps) => {
 
   const handleCopyLink = async () => {
     const params = new URLSearchParams();
+    params.set('report', '1');
     if (dimension !== 'all') {
-      params.set('type', dimension.type);
-      params.set('value', dimension.value);
+      params.set('reportType', dimension.type);
+      params.set('reportValue', encodeURIComponent(dimension.value));
     }
-    params.set('username', currentUser?.username || '');
+    if (currentUser?.username) {
+      params.set('reportUser', encodeURIComponent(currentUser.username));
+    }
 
-    const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(params.toString())}`;
+    const shareUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
 
     try {
       await navigator.clipboard.writeText(shareUrl);

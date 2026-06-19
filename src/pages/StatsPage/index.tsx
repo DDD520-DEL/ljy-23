@@ -1,15 +1,52 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useUserStats } from '../../store/useStore';
 import StatsCard from '../../components/Card/StatsCard';
 import SupermarketChart from '../../components/Chart/SupermarketChart';
 import CategoryPieChart from '../../components/Chart/CategoryPieChart';
 import TrendChart from '../../components/Chart/TrendChart';
-import ShareReportModal from '../../components/Report/ShareReportModal';
+import ShareReportModal, { ShareReportInitialState } from '../../components/Report/ShareReportModal';
 import { ScrollText, Coins, Percent, Calendar, Trophy, Share2 } from 'lucide-react';
 
 const StatsPage = () => {
   const stats = useUserStats();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showShareModal, setShowShareModal] = useState(false);
+
+  const shareInitialState = useMemo<ShareReportInitialState | undefined>(() => {
+    const hasReport = searchParams.get('report') === '1';
+    if (!hasReport) return undefined;
+
+    const type = searchParams.get('reportType');
+    const rawValue = searchParams.get('reportValue');
+    const value = rawValue ? decodeURIComponent(rawValue) : undefined;
+
+    if (type === 'month' && value) {
+      return { dimensionType: 'month', value };
+    }
+    if (type === 'supermarket' && value) {
+      return { dimensionType: 'supermarket', value };
+    }
+    return { dimensionType: 'all' };
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (shareInitialState && !showShareModal) {
+      setShowShareModal(true);
+    }
+  }, [shareInitialState, showShareModal]);
+
+  const handleCloseModal = useCallback(() => {
+    setShowShareModal(false);
+    if (searchParams.has('report')) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('report');
+      newParams.delete('reportType');
+      newParams.delete('reportValue');
+      newParams.delete('reportUser');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   return (
     <div className="space-y-8">
@@ -171,7 +208,8 @@ const StatsPage = () => {
 
       <ShareReportModal
         isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
+        onClose={handleCloseModal}
+        initialState={shareInitialState}
       />
     </div>
   );
